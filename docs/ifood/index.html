@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Segurança Digital - Caso iFood & Tokenização</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts para Estética Editorial -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // Ativa o suporte ao modo escuro baseado em classe no elemento html
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        interceptRed: '#E11D48', // Vermelho de foco do Intercept
+                        journalBlack: '#0F0F11',
+                        journalGray: '#F4F4F6',
+                        darkTerminal: '#0D1117'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Transições suaves para elementos interativos */
+        .transition-all {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Barra de rolamento personalizada de estilo editorial */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F4F4F6;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D1D5DB;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9CA3AF;
+        }
+    </style>
+</head>
+<body class="font-sans bg-[#FBFBFC] text-journalBlack dark:bg-gray-950 dark:text-gray-100 selection:bg-rose-100 selection:text-rose-900 dark:selection:bg-rose-950 dark:selection:text-rose-200 leading-relaxed transition-colors duration-500" id="body-container">
+
+    <!-- Faixa de Easter Egg: CARAI COROPITA -->
+    <div class="fixed top-0 left-0 w-44 h-44 overflow-hidden pointer-events-none z-[100]" id="easter-egg-ribbon">
+        <div class="absolute bg-rose-600 text-white text-[9px] font-mono font-black py-1.5 px-8 text-center w-56 -rotate-45 -translate-x-14 translate-y-7 shadow-lg border-b border-rose-400/30 flex items-center justify-center gap-1.5 cursor-help pointer-events-auto transition-transform hover:scale-105 duration-300" 
+             title="Homenagem à perna mutante de dois pés (um virado para trás) gerada por IA na imagem de dry needling!">
+            <span>CARAI COROPITA</span>
+            <!-- Emoji do Curupira em SVG -->
+            <svg class="w-4 h-4 inline-block animate-pulse" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Cabelo de Fogo -->
+                <path d="M12 2C10 5 6 6 8 10C5 9 3 12 6 15C4 17 6 21 12 19C18 21 20 17 18 15C21 12 19 9 16 10C18 6 14 5 12 2Z" fill="#FF4500" />
+                <!-- Rosto -->
+                <circle cx="12" cy="14" r="5" fill="#FDBA74" />
+                <!-- Olhos -->
+                <circle cx="10" cy="13" r="1" fill="#000" />
+                <circle cx="14" cy="13" r="1" fill="#000" />
+                <!-- Sorriso Engraçado -->
+                <path d="M10.5 15.5C11 16 13 16 13.5 15.5" stroke="#000" stroke-width="1" stroke-linecap="round" />
+                <!-- Pés Invertidos -->
+                <path d="M9 19L7 20M15 19L17 20" stroke="#8B4513" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+        </div>
+    </div>
+
+    <!-- Cabeçalho de Navegação Editorial -->
+    <header class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-50 transition-colors duration-500" id="main-header">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <!-- Logotipo da Marca (Deslocado para evitar choque com a faixa diagonal no desktop) -->
+            <div class="flex items-center space-x-3 pl-12 sm:pl-16 md:pl-0">
+                <span class="bg-black text-white dark:bg-rose-600 px-2 py-1 font-serif font-black tracking-widest text-lg md:text-xl transition-all duration-300" id="logo-badge">
+                    DECRYPT
+                </span>
+                <span class="text-xs font-mono tracking-wider text-gray-500 dark:text-rose-400 hidden sm:inline uppercase" id="brand-sub">
+                    // REPORTAGEM DE INVESTIGAÇÃO
+                </span>
+            </div>
+
+            <!-- Configurações Interativas e Seletor de Idioma -->
+            <div class="flex items-center space-x-2 md:space-x-4">
+                <!-- Alternador do Modo de Leitura -->
+                <button onclick="toggleViewMode()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300" title="Alternar modo de leitura" id="theme-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </button>
+
+                <!-- Seletor de Idioma baseado em Bandeiras Circulares -->
+                <div class="inline-flex rounded-lg p-1 bg-gray-100 dark:bg-gray-800 gap-1.5" id="lang-selector-container">
+                    <!-- Bandeira do Brasil (PT-BR) -->
+                    <button onclick="switchLanguage('pt-BR')" id="lang-btn-pt-BR" class="p-1 rounded-full transition-all duration-200 bg-white dark:bg-gray-700 shadow-sm border border-rose-500 scale-110" title="Português (Brasil)">
+                        <svg class="w-6 h-6 rounded-full border border-gray-300 shadow-sm" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="30" height="30" fill="#22C55E"/>
+                            <polygon points="15,4 26,15 15,26 4,15" fill="#EAB308"/>
+                            <circle cx="15" cy="15" r="5" fill="#2563EB"/>
+                            <path d="M10 15 Q15 13 20 15" stroke="#FFFFFF" stroke-width="1" fill="none"/>
+                        </svg>
+                    </button>
+                    <!-- Bandeira de Porto Rico (ES-PR) -->
+                    <button onclick="switchLanguage('es-PR')" id="lang-btn-es-PR" class="p-1 rounded-full transition-all duration-200 opacity-50 hover:opacity-100 border border-transparent" title="Español (Puerto Rico)">
+                        <svg class="w-6 h-6 rounded-full border border-gray-300 shadow-sm" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="30" height="30" fill="#EF4444"/>
+                            <rect y="6" width="30" height="6" fill="#FFFFFF"/>
+                            <rect y="18" width="30" height="6" fill="#FFFFFF"/>
+                            <polygon points="0,0 15,15 0,30" fill="#3B82F6"/>
+                            <polygon points="5,12 6,15 9,15 7,17 8,20 5,18 2,20 3,17 1,15 4,15" fill="#FFFFFF" transform="scale(0.8) translate(1, 4)"/>
+                        </svg>
+                    </button>
+                    <!-- Bandeira da Jamaica (EN-JM) -->
+                    <button onclick="switchLanguage('en-JM')" id="lang-btn-en-JM" class="p-1 rounded-full transition-all duration-200 opacity-50 hover:opacity-100 border border-transparent" title="English (Jamaica)">
+                        <svg class="w-6 h-6 rounded-full border border-gray-300 shadow-sm" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="30" height="30" fill="#000000"/>
+                            <polygon points="0,0 15,15 30,0" fill="#22C55E"/>
+                            <polygon points="0,30 15,15 30,30" fill="#22C55E"/>
+                            <line x1="0" y1="0" x2="30" y2="30" stroke="#EAB308" stroke-width="3"/>
+                            <line x1="30" y1="0" x2="0" y2="30" stroke="#EAB308" stroke-width="3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Indicador de Progresso de Leitura -->
+    <div class="h-1 w-full bg-gray-100 dark:bg-gray-800 sticky top-[53px] z-50">
+        <div id="progress-bar" class="h-full bg-interceptRed w-0 transition-all duration-150"></div>
+    </div>
+
+    <!-- Assistente de Navegação Dinâmico: Guia de Leitura -->
+    <div class="fixed bottom-6 right-6 z-40 hidden md:block">
+        <div class="bg-white/90 backdrop-blur border border-gray-200 dark:bg-gray-900/95 dark:border-gray-800 shadow-xl rounded-xl p-4 w-52 text-xs font-sans transition-all duration-300 hover:scale-105 text-journalBlack dark:text-gray-100" id="pyramid-assistant">
+            <h5 class="font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest text-[9px] border-b pb-1" id="pyramid-title">Guia de Leitura</h5>
+            <div class="space-y-2">
+                <!-- Topo (Lead) -->
+                <button onclick="scrollToSection('pyramid-lead')" class="w-full text-left p-1.5 rounded transition-colors duration-200 flex items-center space-x-2 bg-rose-50 text-rose-700 font-semibold" id="nav-btn-lead">
+                    <span class="w-2 h-2 rounded-full bg-interceptRed"></span>
+                    <span id="pyramid-step-1">1. Resumo do Fato</span>
+                </button>
+                <!-- Contexto -->
+                <button onclick="scrollToSection('pyramid-context')" class="w-full text-left p-1.5 rounded transition-colors duration-200 flex items-center space-x-2 text-gray-600 hover:bg-gray-50" id="nav-btn-context">
+                    <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+                    <span id="pyramid-step-2">2. Por Dentro do Sistema</span>
+                </button>
+                <!-- Detalhes / Ações -->
+                <button onclick="scrollToSection('pyramid-actions')" class="w-full text-left p-1.5 rounded transition-colors duration-200 flex items-center space-x-2 text-gray-600 hover:bg-gray-50" id="nav-btn-actions">
+                    <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+                    <span id="pyramid-step-3">3. Plano de Proteção</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contentor Principal -->
+    <main class="max-w-4xl mx-auto px-4 py-8 md:py-16">
+
+        <!-- Kicker / Categoria -->
+        <div class="flex items-center space-x-2 mb-4">
+            <span class="text-xs font-bold tracking-widest text-interceptRed uppercase" id="kicker">
+                SEGURANÇA DIGITAL / INVESTIGAÇÃO ESPECIAL
+            </span>
+            <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+            <span class="text-xs text-gray-500 dark:text-gray-400 font-mono" id="read-time">5 min de leitura</span>
+        </div>
+
+        <!-- Título Principal -->
+        <h1 class="text-4xl md:text-6xl font-serif font-black tracking-tight leading-tight mb-6 text-journalBlack dark:text-white transition-all" id="main-headline">
+            Vazamento no iFood: Você realmente precisa cancelar seu cartão de crédito cadastrado?
+        </h1>
+
+        <!-- Subtítulo -->
+        <p class="text-lg md:text-2xl text-gray-600 dark:text-gray-300 font-light leading-relaxed mb-8 border-l-4 border-interceptRed pl-4" id="main-subheadline">
+            Alegações de extorsão de US$ 43,8 milhões na Dark Web assustam utilizadores antigos da plataforma de delivery. Explicamos a matemática da criptografia que protege os seus fundos e por que a ameaça real pode estar em outro lugar.
+        </p>
+
+        <!-- Bloco de Autor / Metadados -->
+        <div class="flex items-center justify-between border-y border-gray-200 dark:border-gray-800 py-6 mb-10" id="author-block">
+            <div class="flex items-center space-x-4">
+                <!-- Avatar SVG Customizado -->
+                <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center text-white font-bold text-lg">
+                    ED
+                </div>
+                <div>
+                    <h4 class="font-bold text-sm text-gray-900 dark:text-gray-100" id="author-name">Equipe Decrypt Security</h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400" id="author-title">Jornalismo Investigativo de Tecnologia</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-gray-400 dark:text-gray-500" id="pub-date">Publicado em 31 de Maio, 2026</p>
+                <div class="flex space-x-2 mt-1 justify-end">
+                    <button onclick="shareArticle()" class="text-gray-500 hover:text-interceptRed transition-colors" title="Copiar hiperligação da matéria">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 10.742l4.684-2.342m0 0l4.684 2.342m-4.684-2.342v6.171m0 0L8.684 13.258m4.684 3.655a4.486 4.486 0 11-8.972 0 4.486 4.486 0 018.972 0zm0 0a4.486 4.486 0 108.972 0 4.486 4.486 0 00-8.972 0z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECÇÃO 1: LEAD -->
+        <section id="pyramid-lead" class="scroll-mt-20">
+            <p class="text-lg md:text-xl font-normal leading-relaxed mb-6 text-gray-800 dark:text-gray-200 first-letter:text-5xl first-letter:font-serif first-letter:font-black first-letter:mr-3 first-letter:float-left first-letter:text-interceptRed" id="lead-text-p1">
+                Uma tentativa massiva de extorsão contra a gigante brasileira de entregas iFood, noticiada recentemente sob a alegação de um vazamento de dados de mais de 43,8 milhões de clientes na Dark Web, causou pânico generalizado. Entre os supostos dados violados, o hacker listava a presença de "informações de cartão de crédito". Se você é utilizador assíduo do aplicativo há anos, o medo de ver as suas finanças limpas é compreensível. No entanto, o veredicto técnico é claro: <strong>você não precisa de correr para cancelar os seus cartões físicos</strong>.
+            </p>
+
+            <p class="text-base md:text-lg mb-8 text-gray-700 dark:text-gray-300" id="lead-text-p2">
+                A razão para essa tranquilidade reside na infraestrutura de segurança moderna exigida pelas marcas globais (Visa, Mastercard, Elo) chamada de <strong>Tokenização de Pagamento</strong>. O iFood simplesmente não possui as credenciais brutas do seu cartão físico para vazarem em primeiro lugar. Abaixo, desmistificamos este sistema e mostramos quais ameaças merecem o seu verdadeiro foco.
+            </p>
+
+            <!-- Caixa de Resumo Rápido -->
+            <div class="bg-rose-50 dark:bg-rose-950/20 border-l-4 border-rose-600 p-6 rounded-r-xl mb-12">
+                <h3 class="font-bold text-rose-900 dark:text-rose-300 text-lg mb-2" id="quick-box-title">O Veredito Direto ao Ponto</h3>
+                <ul class="space-y-2 text-rose-800 dark:text-rose-400 text-sm md:text-base list-disc list-inside" id="quick-box-list">
+                    <li><strong>O seu Cartão Físico está seguro:</strong> Ele não fica guardado no aplicativo.</li>
+                    <li><strong>O que é armazenado:</strong> Um código criptografado inutilizável fora do ecossistema do iFood (Token).</li>
+                    <li><strong>Quem realmente corre risco:</strong> Os seus dados de registo (e-mail, CPF, telefone). Eles podem ser usados para fraudes de phishing e falsas centrais de atendimento telefónico.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Infográfico Interativo de Tokenização -->
+        <section class="bg-gray-100 dark:bg-gray-900/60 rounded-2xl p-6 md:p-8 mb-12 border border-gray-200 dark:border-gray-800 transition-colors duration-500" id="token-diagram-section">
+            <h3 class="text-xl font-serif font-bold mb-3 tracking-tight text-gray-900 dark:text-white" id="diagram-title">Infográfico Interativo: O Escudo da Tokenização</h3>
+            <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-6" id="diagram-desc">Clique nas etapas abaixo para ver o que acontece com o seu cartão quando o insere na aplicação.</p>
+
+            <!-- Abas de Navegação -->
+            <div class="grid grid-cols-4 gap-2 mb-6">
+                <button onclick="setActiveStep(1)" id="step-tab-1" class="py-2 px-1 text-center border-b-4 border-interceptRed text-xs font-bold transition-all duration-300 text-black dark:text-white">1. Cadastro</button>
+                <button onclick="setActiveStep(2)" id="step-tab-2" class="py-2 px-1 text-center border-b-4 border-gray-200 dark:border-gray-700 text-xs text-gray-400 dark:text-gray-500 font-bold transition-all duration-300 hover:text-gray-600 dark:hover:text-gray-300">2. Envio</button>
+                <button onclick="setActiveStep(3)" id="step-tab-3" class="py-2 px-1 text-center border-b-4 border-gray-200 dark:border-gray-700 text-xs text-gray-400 dark:text-gray-500 font-bold transition-all duration-300 hover:text-gray-600 dark:hover:text-gray-300">3. Tokenização</button>
+                <button onclick="setActiveStep(4)" id="step-tab-4" class="py-2 px-1 text-center border-b-4 border-gray-200 dark:border-gray-700 text-xs text-gray-400 dark:text-gray-500 font-bold transition-all duration-300 hover:text-gray-600 dark:hover:text-gray-300">4. Resgate</button>
+            </div>
+
+            <!-- Área Explicativa Dinâmica -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 min-h-[180px] flex flex-col justify-between" id="step-content-box">
+                <div id="step-explanation">
+                    <!-- Conteúdo Dinâmico via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SECÇÃO 2: CONTEXTO E ANÁLISE TÉCNICA -->
+        <section id="pyramid-context" class="scroll-mt-20">
+            <h2 class="text-2xl md:text-3xl font-serif font-bold mb-4 tracking-tight text-gray-900 dark:text-white" id="context-h2">
+                O que dizem as partes e como a segurança é garantida por lei
+            </h2>
+
+            <p class="text-gray-700 dark:text-gray-300 mb-6" id="context-p1">
+                <!-- Hiperligações processadas via JS -->
+            </p>
+
+            <!-- Citação Editorial -->
+            <blockquote class="border-l-4 border-black dark:border-white pl-6 py-2 my-8 italic text-lg text-gray-800 dark:text-gray-200 font-serif transition-colors duration-500">
+                <span id="pull-quote-text">"Não guardamos dados brutos de cartão de crédito. Os seus pagamentos são processados por adquirentes internacionais gigantes protegidas sob rigorosas auditorias PCI-DSS. O que a aplicação mantém é apenas uma chave de uso específico."</span>
+                <cite class="block text-xs font-sans font-bold text-gray-500 dark:text-gray-400 not-italic mt-2" id="pull-quote-author">— Diretoria de Segurança Corporativa do iFood via <a href="https://newsroom.ifood.com.br/" target="_blank" rel="noopener noreferrer" class="underline hover:text-interceptRed dark:hover:text-rose-300 font-bold">iFood Newsroom</a></cite>
+            </blockquote>
+
+            <!-- Caixa Lateral Semântica de Foco Técnico -->
+            <aside class="my-10 p-6 bg-amber-50/40 border-l-4 border-amber-500 rounded-r-2xl shadow-sm transition-all duration-500 text-journalBlack dark:bg-slate-900 dark:text-gray-200" id="tech-aside">
+                <div class="flex items-center space-x-2 mb-3">
+                    <span class="bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase">Foco Técnico</span>
+                </div>
+                <h3 class="text-xl font-bold mb-2 tracking-tight text-gray-900 dark:text-white" id="sub-h3-tech">A Criptografia no seu Bolso: O Conceito de Token</h3>
+                <p class="text-gray-700 dark:text-gray-300 mb-6 text-sm md:text-base" id="context-p2">
+                    Para fins práticos, imagine que em vez de guardar o segredo original da fechadura do seu cofre, você distribui cartões magnéticos temporários que funcionam apenas num único terminal. O número real de 16 dígitos do seu cartão, o código CVV e a data de validade passam apenas uma vez, de forma criptografada, pelo gateway de pagamento na hora do cadastro. O que a aplicação de entrega guarda na base de dados é um valor de representação digital único:
+                </p>
+
+                <div class="bg-gray-900 text-gray-300 p-4 rounded-xl font-mono text-xs mb-4 overflow-x-auto shadow-inner">
+                    <span class="text-green-400">// Exemplo de representação em base de dados:</span><br>
+                    {<br>
+                    &nbsp;&nbsp;<span class="text-rose-400">"user_id"</span>: "98234-df89-11ef-8f96-0242ac110002",<br>
+                    &nbsp;&nbsp;<span class="text-rose-400">"card_alias"</span>: "Nu-Bank Visa final *4321",<br>
+                    &nbsp;&nbsp;<span class="text-rose-400">"payment_token"</span>: <span class="text-yellow-300">"tok_a1b2c3d4e5f6g7h8_sandbox_39a8dc2287f3e8"</span>,<br>
+                    &nbsp;&nbsp;<span class="text-rose-400">"cvv"</span>: <span class="text-red-400">null</span>, <span class="text-green-500">// NUNCA ARMAZENADO</span><br>
+                    &nbsp;&nbsp;<span class="text-rose-400">"pci_compliance"</span>: true<br>
+                    }
+                </div>
+
+                <p class="text-gray-700 dark:text-gray-300 text-xs md:text-sm" id="context-p3">
+                    Mesmo se a base de dados do iFood fosse inteiramente publicada na internet amanhã, o atacante teria em mãos apenas esse token de pagamento. Esse token é inútil para compras fora da estrutura de processamento integrada do iFood, tornando impossível realizar compras não autorizadas em outros websites de comércio eletrónico com esses dados.
+                </p>
+            </aside>
+        </section>
+
+        <!-- Questionário Interativo de Avaliação de Risco -->
+        <section class="my-12 bg-rose-900 text-white rounded-3xl p-6 md:p-10 shadow-xl relative overflow-hidden">
+            <!-- Efeito de Fundo -->
+            <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-rose-800 rounded-full blur-2xl opacity-50"></div>
+            
+            <h3 class="text-2xl md:text-3xl font-serif font-black mb-2 tracking-tight" id="quiz-title">Ferramenta Interativa: Minha Conta está em Risco?</h3>
+            <p class="text-rose-200 text-sm mb-6 max-w-xl" id="quiz-subtitle">Responda a 3 perguntas rápidas para descobrir se precisa de tomar medidas preventivas.</p>
+
+            <div id="quiz-container" class="space-y-6 relative z-10">
+                <!-- Conteúdo Dinâmico do Questionário -->
+                <div id="quiz-question-box" class="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/15">
+                    <span id="quiz-question-num" class="text-rose-300 text-xs font-mono font-bold uppercase tracking-wider">Passo 1 de 3</span>
+                    <h4 id="quiz-question-text" class="text-lg font-bold mt-1 mb-4 leading-snug">Você costuma reutilizar a mesma senha do seu iFood em outros aplicativos, e-mails ou redes sociais?</h4>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button onclick="handleQuizAnswer(true)" class="bg-white text-rose-900 hover:bg-rose-50 font-bold px-6 py-3 rounded-xl transition-all shadow-sm">Sim, reutilizo</button>
+                        <button onclick="handleQuizAnswer(false)" class="bg-rose-800 text-white hover:bg-rose-700 border border-white/25 font-bold px-6 py-3 rounded-xl transition-all">Não, uso senhas exclusivas</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECÇÃO 3: AÇÕES E MITIGAÇÃO -->
+        <section id="pyramid-actions" class="scroll-mt-20">
+            <h2 class="text-2xl md:text-3xl font-serif font-bold mb-4 tracking-tight text-gray-900 dark:text-white" id="actions-h2">
+                As Verdadeiras Ameaças e Como Blindar sua Conta Agora
+            </h2>
+
+            <p class="text-gray-700 dark:text-gray-300 mb-6" id="actions-p1">
+                Embora seu cartão de crédito físico não sofra riscos de clonagem em larga escala por este incidente, vazamentos de bases cadastrais facilitam a ocorrência de fraudes baseadas em engenharia social. Golpistas usam e-mails, números de CPF e telefones expostos para montar cenários altamente convincentes.
+            </p>
+
+            <h3 class="text-xl font-bold mb-4 tracking-tight flex items-center space-x-2 text-rose-600" id="tactics-title">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>Ameaças em Foco: Cuidado com estes Golpes</span>
+            </h3>
+
+            <!-- Grid de Comparação de Ataques -->
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div class="border border-gray-200 dark:border-gray-800 rounded-xl p-5 bg-white dark:bg-gray-900 transition-all shadow-sm">
+                    <h4 class="font-bold text-gray-900 dark:text-white mb-2" id="scam-1-title">O Golpe do Entregador Virtual</h4>
+                    <p class="text-xs md:text-sm text-gray-600 dark:text-gray-300" id="scam-1-desc">
+                        O criminoso liga ou manda mensagem alegando que houve uma taxa extra na entrega (normalmente poucos reais). Eles trazem uma maquininha com o visor quebrado ou que exibe um valor falso, cobrando milhares de reais na transação física.
+                    </p>
+                </div>
+                <div class="border border-gray-200 dark:border-gray-800 rounded-xl p-5 bg-white dark:bg-gray-900 transition-all shadow-sm">
+                    <h4 class="font-bold text-gray-900 dark:text-white mb-2" id="scam-2-title">Falsas Centrais de Atendimento</h4>
+                    <p class="text-xs md:text-sm text-gray-600 dark:text-gray-300" id="scam-2-desc">
+                        Golpistas telefonam informando que identificaram uma compra exorbitante no seu cadastro do iFood de outra localidade. Eles usam seus dados cadastrais (CPF, Nome) para convencer você a transferir fundos para "contas seguras".
+                    </p>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-bold mb-4 tracking-tight text-gray-900 dark:text-white" id="how-to-header">Guia Passo a Passo: Proteja suas Informações</h3>
+            
+            <!-- Guia de Etapas com Iconografia Integrada -->
+            <div class="space-y-6 mb-12">
+                <div class="flex items-start space-x-4">
+                    <div class="w-8 h-8 rounded-full bg-interceptRed text-white flex items-center justify-center font-bold font-mono flex-shrink-0">
+                        1
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-900 dark:text-white" id="guide-1-title">Adote Cartões Virtuais com Limite Dinâmico</h4>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm md:text-base" id="guide-1-desc">
+                            Evite expor o cartão físico principal. Crie um cartão virtual específico para serviços de assinatura e delivery em seu aplicativo bancário, configurando um limite de gastos diário ou semanal baixo.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-start space-x-4">
+                    <div class="w-8 h-8 rounded-full bg-interceptRed text-white flex items-center justify-center font-bold font-mono flex-shrink-0">
+                        2
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-900 dark:text-white" id="guide-2-title">Exclua Métodos de Pagamento Inativos</h4>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm md:text-base" id="guide-2-desc">
+                            Faça uma limpa no aplicativo. Acesse "Perfil" -> "Pagamentos" e remova cartões de bancos que você não usa mais com frequência. Menos rastro equivale a menor superfície de ataque.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-start space-x-4">
+                    <div class="w-8 h-8 rounded-full bg-interceptRed text-white flex items-center justify-center font-bold font-mono flex-shrink-0">
+                        3
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-900 dark:text-white" id="guide-3-title">Altere a sua Senha Imediatamente</h4>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm md:text-base" id="guide-3-desc">
+                            Se houver vazamento de senhas antigas criptografadas (hashes), atacantes persistentes podem descriptografá-las. Substitua sua senha atual por uma chave forte gerada aleatoriamente no seu gerenciador de senhas.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Formulário Editorial de Subscrição da Newsletter -->
+        <section class="border-t-2 border-black dark:border-gray-800 pt-12 mt-16 pb-8">
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div>
+                    <h3 class="font-serif font-black text-2xl mb-2 text-gray-900 dark:text-white" id="news-title">Fique Blindado de Forma Inteligente</h3>
+                    <p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed" id="news-desc">
+                        Nossos relatórios semanais de cibersegurança trazem investigações profundas e sem frescuras sobre ameaças cibernéticas cotidianas. Sem jargões técnicos complexos, focado no seu bolso.
+                    </p>
+                </div>
+                <div>
+                    <form onsubmit="handleSubscribe(event)" class="space-y-3">
+                        <input type="email" id="sub-email" required placeholder="Digite seu melhor e-mail" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-interceptRed focus:border-transparent text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all">
+                        <button type="submit" class="w-full bg-black dark:bg-rose-600 text-white dark:text-white font-bold text-sm uppercase py-3 rounded-xl hover:bg-neutral-800 dark:hover:bg-rose-700 transition-all tracking-wider" id="news-btn">Inscrever-se gratuitamente</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="bg-journalBlack text-gray-400 py-12 px-4 border-t border-gray-800 dark:border-gray-900 transition-colors duration-500" id="main-footer">
+        <div class="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center space-x-2">
+                <span class="text-white font-serif font-black tracking-widest text-lg">DECRYPT</span>
+                <span class="text-xs text-gray-500">| © 2026. Direitos Reservados.</span>
+            </div>
+            <div class="flex space-x-6 text-xs">
+                <a href="#pyramid-lead" class="hover:text-white transition-colors">Lead</a>
+                <a href="#pyramid-context" class="hover:text-white transition-colors">Segurança</a>
+                <a href="#pyramid-actions" class="hover:text-white transition-colors">Ações</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast de Notificação Visual -->
+    <div id="toast-notification" class="fixed bottom-6 left-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-gray-800 text-xs font-mono translate-y-24 opacity-0 transition-all duration-300 pointer-events-none flex items-center space-x-3">
+        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+        <span id="toast-message">Mapeamento copiado para a área de transferência!</span>
+    </div>
+
+    <!-- LÓGICA PRINCIPAL JAVASCRIPT -->
+    <script>
+        // Dicionário de tradução multi-idioma (com PT-PT incorporado semanticamente)
+        const TRANSLATIONS = {
+            'pt-BR': {
+                'brand-sub': '// RELATÓRIO DE INVESTIGAÇÃO',
+                'pyramid-title': 'Guia de Leitura',
+                'pyramid-step-1': '1. Resumo do Fato',
+                'pyramid-step-2': '2. Por Dentro do Sistema',
+                'pyramid-step-3': '3. Plano de Proteção',
+                'kicker': 'SEGURANÇA DIGITAL / INVESTIGAÇÃO ESPECIAL',
+                'read-time': '5 min de leitura',
+                'main-headline': 'Vazamento no iFood: Você realmente precisa cancelar seu cartão de crédito cadastrado?',
+                'main-subheadline': 'Alegações de extorsão de US$ 43,8 milhões na Dark Web assustam utilizadores antigos da plataforma de delivery. Explicamos a matemática da criptografia que protege os seus fundos e por que a ameaça real pode estar em outro lugar.',
+                'author-name': 'Equipe Decrypt Security',
+                'author-title': 'Jornalismo Investigativo de Tecnologia',
+                'pub-date': 'Publicado em 31 de Maio, 2026',
+                'lead-text-p1': 'Uma tentativa massiva de extorsão contra a gigante brasileira de entregas iFood, noticiada recentemente sob a alegação de um vazamento de dados de mais de 43,8 milhões de clientes na Dark Web, causou pânico generalizado. Entre os supostos dados violados, o hacker listava a presença de "informações de cartão de crédito". Se você é utilizador assíduo do aplicativo há anos, o medo de ver as suas finanças limpas é compreensível. No entanto, o veredito técnico é claro: <strong>você não precisa de correr para cancelar os seus cartões físicos</strong>.',
+                'lead-text-p2': 'A razão para essa tranquilidade reside na infraestrutura de segurança moderna exigida pelas marcas globais (Visa, Mastercard, Elo) chamada de <strong>Tokenização de Pagamento</strong>. O iFood simplesmente não possui as credenciais brutas do seu cartão físico para vazarem em primeiro lugar. Abaixo, desmistificamos este sistema e mostramos quais ameaças merecem o seu verdadeiro foco.',
+                'quick-box-title': 'O Veredito Direto ao Ponto',
+                'quick-box-list-1': 'O seu Cartão Físico está seguro: Ele não fica guardado no aplicativo.',
+                'quick-box-list-2': 'O que é armazenado: Um código criptografado inutilizável fora do ecossistema do iFood (Token).',
+                'quick-box-list-3': 'Quem realmente corre risco: Os seus dados de registo (e-mail, CPF, telefone). Eles podem ser usados para fraudes de phishing e falsas centrais de atendimento telefónico.',
+                'diagram-title': 'Infográfico Interativo: O Escudo da Tokenização',
+                'diagram-desc': 'Clique nas etapas abaixo para ver o que acontece com o seu cartão quando o insere na aplicação.',
+                'diagram-step-1-tab': '1. Cadastro',
+                'diagram-step-2-tab': '2. Envio',
+                'diagram-step-3-tab': '3. Tokenização',
+                'diagram-step-4-tab': '4. Resgate',
+                'context-h2': 'O que dizem as partes e como a segurança é garantida por lei',
+                'context-p1': 'O atacante "bacen" expôs no fórum ilegal amostras contendo o que parecem ser dados estruturados de utilizadores. No entanto, o iFood emitiu <a href="https://newsroom.ifood.com.br/" target="_blank" rel="noopener noreferrer" class="text-interceptRed underline hover:text-rose-800 dark:hover:text-rose-300 font-semibold">notas oficiais em seu canal de imprensa</a> assegurando que seus logs internos e barreiras de tráfego não identificaram acessos não autorizados. Esse parecer de conformidade foi detalhado pela <a href="https://tecnoblog.net/" target="_blank" rel="noopener noreferrer" class="text-interceptRed underline hover:text-rose-800 dark:hover:text-rose-300 font-semibold">cobertura especializada do Tecnoblog</a>.',
+                'pull-quote-text': '"Não guardamos dados brutos de cartão de crédito. Os seus pagamentos são processados por adquirentes internacionais gigantes protegidas sob rigorosas auditorias PCI-DSS. O que a aplicação mantém é apenas uma chave de uso específico."',
+                'pull-quote-author': '— Diretoria de Segurança Corporativa do iFood via <a href="https://newsroom.ifood.com.br/" target="_blank" rel="noopener noreferrer" class="underline hover:text-interceptRed font-bold">iFood Newsroom</a>',
+                'sub-h3-tech': 'A Criptografia no seu Bolso: O Concept de Token',
+                'context-p2': 'Para fins práticos, imagine que em vez de guardar o segredo original da fechadura do seu cofre, você distribui cartões magnéticos temporários que funcionam apenas em um único terminal. O número real de 16 dígitos do seu cartão, o código CVV e a data de validade passam apenas uma vez, de forma criptografada, pelo gateway de pagamento na hora do cadastro. O que a aplicação de entrega guarda na base de dados é um valor de representação digital único:',
+                'context-p3': 'Mesmo se a base de dados do iFood fosse inteiramente publicada na internet amanhã, o hacker teria em mãos apenas esse token de pagamento. Esse token é inútil para compras fora da estrutura de processamento integrada do iFood, tornando impossível realizar compras não autorizadas em outros websites de comércio eletrónico com esses dados.',
+                'quiz-title': 'Ferramenta Interativa: Minha Conta está em Risco?',
+                'quiz-subtitle': 'Responda a 3 perguntas rápidas para descobrir se precisa de tomar medidas preventivas.',
+                'actions-h2': 'As Verdadeiras Ameaças e Como Blindar sua Conta Agora',
+                'actions-p1': 'Embora seu cartão de crédito físico não sofra riscos de clonagem em larga escala por este incidente, vazamentos de bases cadastrais facilitam a ocorrência de fraudes baseadas em engenharia social. Golpistas usam e-mails, números de CPF e telefones expostos para montar cenários altamente convincentes.',
+                'tactics-title': 'Ameaças em Foco: Cuidado com estes Golpes',
+                'scam-1-title': 'O Golpe do Entregador Virtual',
+                'scam-1-desc': 'O criminoso liga ou manda mensagem alegando que houve uma taxa extra na entrega (normalmente poucos reais). Eles trazem uma maquininha com o visor quebrado ou que exibe um valor falso, cobrando milhares de reais na transação física.',
+                'scam-2-title': 'Falsas Centrais de Atendimento',
+                'scam-2-desc': 'Golpistas telefonam informando que identificaram uma compra exorbitante no seu cadastro do iFood de outra localidade. Eles usam seus dados cadastrais (CPF, Nome) para convencer você a transferir fundos para "contas seguras".',
+                'how-to-header': 'Guia Passo a Passo: Proteja suas Informações',
+                'guide-1-title': 'Adote Cartões Virtuais com Limite Dinâmico',
+                'guide-1-desc': 'Evite expor o cartão físico principal. Crie um cartão virtual específico para serviços de assinatura e delivery em seu aplicativo bancário, configurando um limite de gastos diário ou semanal baixo.',
+                'guide-2-title': 'Exclua Métodos de Pagamento Inativos',
+                'guide-2-desc': 'Faça uma limpa no aplicativo. Acesse "Perfil" -> "Pagamentos" e remova cartões de bancos que você não usa mais com frequência. Menos rastro equivale a menor superfície de ataque.',
+                'guide-3-title': 'Altere a sua Senha Imediatamente',
+                'guide-3-desc': 'Se houver vazamento de senhas antigas criptografadas (hashes), atacantes persistentes podem descriptografá-las. Substitua sua senha atual por uma chave forte gerada aleatoriamente no seu gerenciador de senhas.',
+                'news-title': 'Fique Blindado de Forma Inteligente',
+                'news-desc': 'Nossos relatórios semanais de cibersegurança trazem investigações profundas e sem frescuras sobre ameaças cibernéticas cotidianas. Sem jargões técnicos complexos, focado no seu bolso.',
+                'news-btn': 'Inscrever-se gratuitamente',
+                'sub-email-placeholder': 'Digite seu melhor e-mail',
+                'toast-copied': 'Link do hotsite copiado para a área de transferência!',
+                'toast-subscribed': 'Obrigado! Inscrição efetuada com sucesso.',
+                'quiz-p1': 'Você costuma reutilizar a mesma senha do seu iFood em outros aplicativos, e-mails ou redes sociais?',
+                'quiz-p1-y': 'Sim, reutilizo',
+                'quiz-p1-n': 'Não, uso senhas exclusivas',
+                'quiz-p2': 'Você utiliza a versão de cartão de crédito FÍSICO direto no app em vez de um CARTÃO VIRTUAL?',
+                'quiz-p2-y': 'Uso cartão físico',
+                'quiz-p2-n': 'Uso cartão virtual',
+                'quiz-p3': 'Você confia em ligações de suporte de entrega pedindo para passar o cartão novamente na maquininha devido a falhas?',
+                'quiz-p3-y': 'Sim, já aceitei isso',
+                'quiz-p3-n': 'Não, nunca aceito',
+                'quiz-score-low': 'Risco Baixo! Você adota excelentes padrões de ciberhigiene. Continue priorizando cartões virtuais dinâmicos.',
+                'quiz-score-med': 'Risco Moderado! Evite o uso de senhas repetidas e faça uma limpa nos cartões antigos inativos no iFood.',
+                'quiz-score-high': 'Atenção! Risco Elevado. Mude imediatamente sua senha e exclua o cartão físico do iFood, substituindo por um cartão virtual dinâmico.'
+            },
+            'es-PR': {
+                'brand-sub': '// INFORME DE INVESTIGACIÓN',
+                'pyramid-title': 'Guía de Lectura',
+                'pyramid-step-1': '1. Resumen del Hecho',
+                'pyramid-step-2': '2. El Sistema por Dentro',
+                'pyramid-step-3': '3. Plan de Protección',
+                'kicker': 'SEGURIDAD DIGITAL / INVESTIGACIÓN ESPECIAL',
+                'read-time': '5 min de lectura',
+                'main-headline': '¿Filtración en iFood? ¿De verdad necesitas cancelar tu tarjeta de crédito registrada?',
+                'main-subheadline': 'Las alegaciones de extorsión de $43.8 millones en la Dark Web encienden las alarmas de usuarios antiguos de la aplicación de entrega. Te explicamos por qué la tokenización protege tu dinero.',
+                'author-name': 'Equipo Decrypt Security',
+                'author-title': 'Periodismo de Investigación Tecnológica',
+                'pub-date': 'Publicado el 31 de Mayo, 2026',
+                'lead-text-p1': 'Un intento masivo de extorsión contra el gigante de entrega iFood, reportado recientemente bajo alegaciones de un leak de datos de más de 43.8 millones de clientes en la Dark Web, ha provocado pánico. Entre la información presuntamente vulnerada se incluían tarjetas de crédito. Si eres usuario constante, el miedo es normal. Sin embargo, el veredicto técnico es firme: <strong>no necesitas apresurarte a cancelar tus tarjetas de crédito físicas</strong>.',
+                'lead-text-p2': 'La razón de esta tranquilidad radica en el estándar internacional de seguridad conocido como <strong>Tokenización de Pagos</strong>. iFood simplemente no almacena las credenciales de tu tarjeta en bruto. Abajo desglosamos este sistema y los riesgos en los que de verdad deberías enfocarte.',
+                'quick-box-title': 'El Veredito Al Grano',
+                'quick-box-list-1': 'Tu tarjeta física está segura: No se guarda de forma cruda en la plataforma.',
+                'quick-box-list-2': 'Qué se almacena: Un código encriptado e inútil fuera de iFood (Token).',
+                'quick-box-list-3': 'El riesgo real: Tus datos de registro (email, identificación personal, teléfono) que se usan para estafas de ingeniería social.',
+                'diagram-title': 'Infografía Interactiva: El Escudo de la Tokenización',
+                'diagram-desc': 'Haz clic en los pasos abajo para ver el viaje de tu tarjeta de crédito en la aplicación.',
+                'diagram-step-1-tab': '1. Registro',
+                'diagram-step-2-tab': '2. Envío',
+                'diagram-step-3-tab': '3. Tokenización',
+                'diagram-step-4-tab': '4. Cobro Seguro',
+                'context-h2': 'Qué alegan las partes implicadas y la protección técnica legal',
+                'context-p1': 'El hacker apodado "bacen" expuso en foros clandestinos muestras de supuestas bases de datos. No obstante, iFood aclaró en <a href="https://newsroom.ifood.com.br/" target="_blank" rel="noopener noreferrer" class="text-interceptRed underline hover:text-rose-800 dark:hover:text-rose-300 font-semibold">comunicados oficiales en su canal de prensa</a> que no han detectado accesos indebidos, lo cual fue corroborado por la <a href="https://tecnoblog.net/" target="_blank" rel="noopener noreferrer" class="text-interceptRed underline hover:text-rose-800 dark:hover:text-rose-300 font-semibold">prensa de tecnología de Tecnoblog</a>.',
+                'pull-quote-text': '"No guardamos números de tarjetas de crédito directamente. Las transacciones pasan por adquirentes globales de pago que cumplen estrictamente con auditorías PCI-DSS."',
+                'pull-quote-author': '— Dirección de Seguridad de iFood vía <a href="https://newsroom.ifood.com.br/" target="_blank" rel="noopener noreferrer" class="underline text-interceptRed font-bold">iFood Newsroom</a>',
+                'sub-h3-tech': 'La Criptografia de Pagos: El Token Financiero',
+                'context-p2': 'Es similar a usar una llave digital temporal que solo abre un hotel por una noche. El número original de 16 dígitos se transmite encriptado directamente al procesador bancario. Lo que la aplicación de delivery almacena es solo un token de representación inofensivo:',
+                'context-p3': 'Si la base de datos de iFood fuera filtrada hoy, los atacantes solo tendrían este token, el cual es inútil fuera del procesamiento de transacciones internas autorizadas de iFood.',
+                'quiz-title': 'Herramienta Interactiva: ¿Está mi Cuenta en Peligro?',
+                'quiz-subtitle': 'Contesta 3 preguntas rápidas para medir tu nivel de riesgo tecnológico.',
+                'actions-h2': 'Las Amenazas Reales y Cómo Blindar tu Cuenta',
+                'actions-p1': 'Aunque tu tarjeta no se pueda clonar directamente desde aquí, los datos filtrados como teléfono y nombre son muy valiosos para tácticas de estafa a través de ingeniería social.',
+                'tactics-title': 'Peligros Identificados: Cuidado con estas modalidades',
+                'scam-1-title': 'La Estafa del Repartidor Falso',
+                'scam-1-desc': 'El delincuente se comunica indicando que debe cobrar una tarifa adicional imprevista en efectivo o tarjeta, utilizando lectores dañados para realizar cargos excesivos indetectables a simple vista.',
+                'scam-2-title': 'Servicio Técnico / Soporte Bancario Falso',
+                'scam-2-desc': 'Te llaman diciendo que detectaron una compra irregular y utilizamos tus datos filtrados reales para de verdad persuadirte de realizar transferencias rápidas a cuentas controladas por criminales.',
+                'how-to-header': 'Paso a Paso para Protegerte Hoy',
+                'guide-1-title': 'Usa Tarjetas de Crédito Virtuales',
+                'guide-1-desc': 'Genera tarjetas dinámicas con límites temporales desde la aplicación de tu banco para realizar transacciones digitales.',
+                'guide-2-title': 'Elimina Métodos de Pago Obsoletos',
+                'guide-2-desc': 'Revisa el área de pagos en la app de iFood y elimina las tarjetas bancarias inactivas o de cuentas que casi no utilices.',
+                'guide-3-title': 'Actualiza tu Contraseña Inmediatamente',
+                'guide-3-desc': 'Crea contraseñas robustas y únicas. Nunca repitas combinaciones del correo o redes sociales en tus apps de entrega.',
+                'news-title': 'Mantén el Control de tu Seguridad',
+                'news-desc': 'Nuestros boletines semanales de seguridad te informan sin rodeos técnicos sobre cómo proteger tus finanzas de las amenazas más comunes.',
+                'news-btn': 'Suscribirme gratis',
+                'sub-email-placeholder': 'Escribe tu dirección de correo electrónico',
+                'toast-copied': '¡Enlace copiado al portapapeles con éxito!',
+                'toast-subscribed': '¡Gracias! Suscripción confirmada correctamente.',
+                'quiz-p1': '¿Reutilizas la misma contraseña de iFood en otros servicios de correo o bancos?',
+                'quiz-p1-y': 'Sí, la reutilizo',
+                'quiz-p1-n': 'No, uso claves únicas',
+                'quiz-p2': '¿Prefieres registrar tu tarjeta FÍSICA de uso diario en vez de una TARJETA VIRTUAL temporal?',
+                'quiz-p2-y': 'Uso tarjeta física',
+                'quiz-p2-n': 'Uso tarjeta virtual',
+                'quiz-p3': '¿Aceptarías que un conductor te pida deslizar de nuevo la tarjeta por "problemas con el cobro" en su propio terminal?',
+                'quiz-p3-y': 'Sí, me ha pasado',
+                'quiz-p3-n': 'No, nunca lo haría',
+                'quiz-score-low': '¡Riesgo Bajo! Sigues excelentes prácticas de ciberseguridad. Mantén tus tarjetas virtuales actualizadas.',
+                'quiz-score-med': '¡Riesgo Moderado! Es crucial cambiar las senhas compartidas y limpiar métodos antiguos guardados.',
+                'quiz-score-high': '¡Riesgo Alto! Toma acción inmediata. Configura contraseñas únicas y borra tu tarjeta física de inmediato.'
+            },
+            'en-JM': {
+                'brand-sub': '// SPECIAL INVESTIGATION REPORT',
+                'pyramid-title': 'Reading Guide',
+                'pyramid-step-1': '1. Fact Summary',
+                'pyramid-step-2': '2. Inside the System',
+                'pyramid-step-3': '3. Protection Plan',
+                'kicker': 'DIGITAL SECURITY / EXCLUSIVE INVESTIGATION',
+                'read-time': '5 min read',
+                'main-headline': 'iFood Breach Allegations: Do You Really Need to Cancel Your Registered Credit Card?',
+                'main-subheadline': 'Claims of a $43.8 million Dark Web extortion attempt have left long-time users of the delivery giant paranoid. Here is why core cryptographic tokenization shields your finances.',
+                'author-name': 'Decrypt Security Team',
+                'author-title': 'Tech Investigative Journalists',
+                'pub-date': 'Published May 31, 2026',
+                'lead-text-p1': 'A massive extortion campaign targeting Brazilian delivery app iFood, triggered by claims that a hacker obtained over 43.8 million customer records on the Dark Web, sparked public concern. With sensitive lists stating "credit card information", users are understandably terrified of account takeovers. However, the technical verdict is sound: <strong>you absolutely do not need to panic or cancel your physical bank cards</strong>.',
+                'lead-text-p2': 'The reason for this lies in the high-grade safety standards enforced by major financial systems globally, known as <strong>Payment Tokenization</strong>. iFood does not store your raw card numbers. Below, we break down this shield and identify where the true security dangers exist.',
+                'quick-box-title': 'The Quick Bottom Line',
+                'quick-box-list-1': 'Your Physical Card is Safe: Raw numbers are never saved inside the app database.',
+                'quick-box-list-2': 'What is actually stored: A specialized encrypted code (Token) completely useless outside of iFood transaction gateways.',
+                'quick-box-list-3': 'Where to watch out: Leaked registration records (emails, ID numbers, phone details) that could be used for targeted phishing scam calls.',
+                'diagram-title': 'Interactive Infographic: The Shield of Tokenization',
+                'diagram-desc': 'Click the steps below to see how your banking information is secured automatically.',
+                'diagram-step-1-tab': '1. Register',
+                'diagram-step-2-tab': '2. Transfer',
+                'diagram-step-3-tab': '3. Tokenization',
+                'diagram-step-4-tab': '4. Safe Retrieval',
+                'context-h2': 'Investigating the Claims and Compliance Laws',
+                'context-p1': 'The threat actor "bacen" published data slices on illicit forums trying to pressure the corporation. However, iFood clarified via <a href="https://newsroom.ifood.com.br/" target="_blank" rel="noopener noreferrer" class="text-interceptRed underline hover:text-rose-800 font-semibold font-semibold">official statements on their newsroom</a> that no system intrusion was detected, a point validated in depth by <a href="https://tecnoblog.net/" target="_blank" rel="noopener noreferrer" class="text-interceptRed underline hover:text-rose-800 font-semibold font-semibold">Tecnoblog news coverage</a>.',
+                'pull-quote-text': '"We never store raw credit card numbers. All transaction channels are processed by global acquiring entities auditing under strict PCI-DSS guidelines."',
+                'pull-quote-author': '— iFood Corporate Security Department via <a href="https://newsroom.ifood.com.br/" target="_blank" rel="noopener noreferrer" class="underline text-interceptRed font-bold">iFood Newsroom</a>',
+                'sub-h3-tech': 'Crypto-Payments Demystified: The Tokenization Framework',
+                'context-p2': 'Think of tokenization as receiving a one-time keycard for an office lockbox. Your real 16-digit card and security CVV numbers pass through securely encrypted tunnels directly to the financial gateway only once during registration. The app database simply records an artificial identifier:',
+                'context-p3': 'Even in the hypothetical event that iFood database tables were dumped onto the open web, the hackers only obtain non-reusable tokens. This makes direct credit card clonings mathematically impossible.',
+                'quiz-title': 'Interactive Tool: Is Your Account Exposed?',
+                'quiz-subtitle': 'Answer 3 fast questions to calculate your digital exposure rating.',
+                'actions-h2': 'The Genuine Dangers and How to Solidify Your Security',
+                'actions-p1': 'While your credit card data is functionally secure, leaked personal registry profiles (such as emails and phone numbers) can easily facilitate sophisticated social engineering scams.',
+                'tactics-title': 'Vulnerabilities to Note: Watch Out For These Common Schemes',
+                'scam-1-title': 'The Fake Delivery Courier Scam',
+                'scam-1-desc': 'A courier contacts you on delivery stating an unforeseen minor processing surcharge. They carry a payment terminal with a faulty screen or hidden values, executing a huge fraudulent transaction on your physically inserted card.',
+                'scam-2-title': 'Simulated Call-Center Surcharges',
+                'scam-2-desc': 'Criminals use leaked profile names and national identifiers to impersonate banks or app support agents, trying to trigger urgent wire transfers under the pretense of "fixing a breach on your profile".',
+                'how-to-header': 'Direct Security Rules to Prevent Financial Scams',
+                'guide-1-title': 'Implement Dynamic Virtual Cards',
+                'guide-1-desc': 'Avoid utilizing your physical card for subscriptions or deliveries. Issue digital cards inside your banking system with low, restricted spending limits.',
+                'guide-2-title': 'Wipe Legacy Payment Profiles',
+                'guide-2-desc': 'Access your iFood application checkout profile and delete bank cards linked to financial institutions you no longer use frequently.',
+                'guide-3-title': 'Reset Your Credentials Now',
+                'guide-3-desc': 'Establish complex, unique login passcodes. Never replicate a passcode from other applications, web portals, or mail interfaces.',
+                'news-title': 'Stay Secure and Informed',
+                'news-desc': 'Our tech security newsletters analyze daily threat patterns with clear, actionable advice. No overly complex tech jargon, just pure digital safety tips.',
+                'news-btn': 'Subscribe for Free',
+                'sub-email-placeholder': 'Enter your primary email address',
+                'toast-copied': 'Hotsite web address successfully copied to your clipboard!',
+                'toast-subscribed': 'Thank you! You have successfully subscribed to the newsletter.',
+                'quiz-p1': 'Do you reuse the same credentials for iFood across multiple other platforms?',
+                'quiz-p1-y': 'Yes, I reuse credentials',
+                'quiz-p1-n': 'No, I use unique passcodes',
+                'quiz-p2': 'Do you input your physical credit card details directly rather than utilizing a secure virtual card?',
+                'quiz-p2-y': 'I use physical cards',
+                'quiz-p2-n': 'I use virtual cards',
+                'quiz-p3': 'Would you let a delivery person swipe your card on their machine again because they claim "the terminal failed"?',
+                'quiz-p3-y': 'Yes, I have done that',
+                'quiz-p3-n': 'No, never',
+                'quiz-score-low': 'Low Risk! Your cybersecurity practices are solid. Keep utilizing smart virtual payments.',
+                'quiz-score-med': 'Moderate Risk! Make sure to update shared passwords and delete outdated payment methods.',
+                'quiz-score-high': 'Action Required! High Risk. Replace your credentials immediately and transition to virtual cards.'
+            }
+        };
+
+        // Gestão de Estado da Aplicação
+        let currentLanguage = 'pt-BR';
+        let currentTheme = 'light'; // light ou dark-web (estilo terminal)
+        let activeTokenizationStep = 1;
+        let quizStep = 1;
+        let quizAnswers = [];
+
+        // Conteúdo Explicativo das Etapas de Tokenização
+        const TOKEN_STEPS = {
+            'pt-BR': {
+                1: {
+                    title: '1. Inserção Inicial',
+                    detail: 'Você insere os dados de 16 dígitos, data de validade e o código CVV no aplicativo iFood. No entanto, esses dados são imediatamente criptografados em trânsito (SSL/TLS) e enviados aos gateways de pagamento homologados, sem salvar cópias no servidor do iFood.'
+                },
+                2: {
+                    title: '2. Envio Seguro à Rede de Bandeiras',
+                    detail: 'O gateway de pagamento (Adquirente / Bandeiras Visa, Mastercard) processa a autenticação do seu cartão e, em vez de retornar o número real, cria uma correspondência simbólica única.'
+                },
+                3: {
+                    title: '3. Geração do Token',
+                    detail: 'Um Token numérico aleatório de 16 ou mais dígitos é devolvido ao iFood. Este token substitui o seu cartão físico e só é válido para compras dentro do próprio aplicativo.'
+                },
+                4: {
+                    title: '4. Armazenamento Blindado',
+                    detail: 'O iFood salva apenas o Token e dados estéticos para você identificar seu cartão (ex: final 4321). Se o banco de dados do iFood for roubado, os criminosos encontrarão apenas tokens inofensivos e não conseguirão roubar seu dinheiro.'
+                }
+            },
+            'es-PR': {
+                1: {
+                    title: '1. Registro Inicial',
+                    detail: 'Ingresas los dígitos de tu tarjeta física en la app de iFood. La información sensible se encripta inmediatamente en tránsito mediante SSL/TLS, viajando directamente al procesador bancario sin quedar almacenada en los servidores locales.'
+                },
+                2: {
+                    title: '2. Envío a las Redes de Pago',
+                    detail: 'El procesador financiero recibe la petición y se comunica con la red bancaria (Visa, Mastercard, etc.) para validar el crédito sin transferir datos planos.'
+                },
+                3: {
+                    title: '3. Creación del Token de Seguridad',
+                    detail: 'La pasarela genera un código cifrado aleatorio que sustituye tu tarjeta física. Este código es de uso restringido exclusivo para las operaciones internas en iFood.'
+                },
+                4: {
+                    title: '4. Guardado Hermético',
+                    detail: 'iFood guarda únicamente el token criptográfico y el nombre de fantasía de la tarjeta. En el peor escenario de filtración, tus datos reales permanecen aislados de los hackers.'
+                }
+            },
+            'en-JM': {
+                1: {
+                    title: '1. Initial Registration',
+                    detail: 'You enter your 16-digit card and CVV code into the iFood system. These digits are instantly encrypted using SSL/TLS protocols and dispatched directly to payment processors, bypassing storage inside the app.'
+                },
+                2: {
+                    title: '2. Transfer to Acquiring Gateways',
+                    detail: 'Major credit agencies (Visa, Mastercard) evaluate your credentials securely to guarantee you have sufficient funds, converting raw accounts into tokens.'
+                },
+                3: {
+                    title: '3. Token Generation',
+                    detail: 'A randomized structural digital code replaces your payment information. This specific string is custom-bound to your app identifier and has zero value elsewhere.'
+                },
+                4: {
+                    title: '4. Secure Persistence',
+                    detail: 'iFood preserves solely the secure token alongside visual markers (ex: Visa ending in *4321). Any external database infiltration yields useless placeholders instead of real funds.'
+                }
+            }
+        };
+
+        // Inicialização do documento e escuta de eventos
+        window.onload = function() {
+            renderLanguage();
+            updateStepView();
+            initScrollIndicator();
+        };
+
+        // Função do Seletor de Idioma
+        function switchLanguage(lang) {
+            currentLanguage = lang;
+            
+            // Destaque visual do botão selecionado
+            const languages = ['pt-BR', 'es-PR', 'en-JM'];
+            languages.forEach(l => {
+                const btn = document.getElementById(`lang-btn-${l}`);
+                if (l === lang) {
+                    btn.className = "p-1 rounded-full transition-all duration-200 bg-white dark:bg-gray-700 shadow-sm scale-110 border-rose-500";
+                    btn.classList.remove('opacity-50', 'border-transparent');
+                } else {
+                    btn.className = "p-1 rounded-full transition-all duration-200 opacity-50 border-transparent";
+                    btn.classList.add('border-transparent');
+                }
+            });
+
+            // Atualização do DOM
+            renderLanguage();
+            updateStepView();
+            resetQuiz();
+            showToast(currentLanguage === 'pt-BR' ? 'Idioma alterado com sucesso.' : (currentLanguage === 'es-PR' ? 'Idioma cambiado correctamente.' : 'Language adjusted successfully.'));
+        }
+
+        // Renderiza o dicionário de idiomas nos nós do DOM
+        function renderLanguage() {
+            const dictionary = TRANSLATIONS[currentLanguage];
+
+            // Mapeamento de IDs
+            document.getElementById('brand-sub').textContent = dictionary['brand-sub'];
+            document.getElementById('pyramid-title').textContent = dictionary['pyramid-title'];
+            document.getElementById('pyramid-step-1').textContent = dictionary['pyramid-step-1'];
+            document.getElementById('pyramid-step-2').textContent = dictionary['pyramid-step-2'];
+            document.getElementById('pyramid-step-3').textContent = dictionary['pyramid-step-3'];
+            document.getElementById('kicker').textContent = dictionary['kicker'];
+            document.getElementById('read-time').textContent = dictionary['read-time'];
+            document.getElementById('main-headline').textContent = dictionary['main-headline'];
+            document.getElementById('main-subheadline').textContent = dictionary['main-subheadline'];
+            document.getElementById('author-name').textContent = dictionary['author-name'];
+            document.getElementById('author-title').textContent = dictionary['author-title'];
+            document.getElementById('pub-date').textContent = dictionary['pub-date'];
+            document.getElementById('lead-text-p1').innerHTML = dictionary['lead-text-p1'];
+            document.getElementById('lead-text-p2').innerHTML = dictionary['lead-text-p2'];
+            document.getElementById('quick-box-title').textContent = dictionary['quick-box-title'];
+
+            // Lista do Veredito Rápido
+            const quickBoxList = document.getElementById('quick-box-list');
+            quickBoxList.innerHTML = `
+                <li><strong>${dictionary['quick-box-list-1'].split(':')[0]}:</strong>${dictionary['quick-box-list-1'].split(':')[1]}</li>
+                <li><strong>${dictionary['quick-box-list-2'].split(':')[0]}:</strong>${dictionary['quick-box-list-2'].split(':')[1]}</li>
+                <li><strong>${dictionary['quick-box-list-3'].split(':')[0]}:</strong>${dictionary['quick-box-list-3'].split(':')[1]}</li>
+            `;
+
+            document.getElementById('diagram-title').textContent = dictionary['diagram-title'];
+            document.getElementById('diagram-desc').textContent = dictionary['diagram-desc'];
+            document.getElementById('step-tab-1').textContent = dictionary['diagram-step-1-tab'];
+            document.getElementById('step-tab-2').textContent = dictionary['diagram-step-2-tab'];
+            document.getElementById('step-tab-3').textContent = dictionary['diagram-step-3-tab'];
+            document.getElementById('step-tab-4').textContent = dictionary['diagram-step-4-tab'];
+
+            document.getElementById('context-h2').textContent = dictionary['context-h2'];
+            document.getElementById('context-p1').innerHTML = dictionary['context-p1'];
+            document.getElementById('pull-quote-text').textContent = dictionary['pull-quote-text'];
+            document.getElementById('pull-quote-author').innerHTML = dictionary['pull-quote-author'];
+            document.getElementById('sub-h3-tech').textContent = dictionary['sub-h3-tech'];
+            document.getElementById('context-p2').textContent = dictionary['context-p2'];
+            document.getElementById('context-p3').textContent = dictionary['context-p3'];
+
+            document.getElementById('quiz-title').textContent = dictionary['quiz-title'];
+            document.getElementById('quiz-subtitle').textContent = dictionary['quiz-subtitle'];
+
+            document.getElementById('actions-h2').textContent = dictionary['actions-h2'];
+            document.getElementById('actions-p1').textContent = dictionary['actions-p1'];
+            document.getElementById('tactics-title').innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>${dictionary['tactics-title']}</span>
+            `;
+
+            document.getElementById('scam-1-title').textContent = dictionary['scam-1-title'];
+            document.getElementById('scam-1-desc').textContent = dictionary['scam-1-desc'];
+            document.getElementById('scam-2-title').textContent = dictionary['scam-2-title'];
+            document.getElementById('scam-2-desc').textContent = dictionary['scam-2-desc'];
+
+            document.getElementById('how-to-header').textContent = dictionary['how-to-header'];
+            document.getElementById('guide-1-title').textContent = dictionary['guide-1-title'];
+            document.getElementById('guide-1-desc').textContent = dictionary['guide-1-desc'];
+            document.getElementById('guide-2-title').textContent = dictionary['guide-2-title'];
+            document.getElementById('guide-2-desc').textContent = dictionary['guide-2-desc'];
+            document.getElementById('guide-3-title').textContent = dictionary['guide-3-title'];
+            document.getElementById('guide-3-desc').textContent = dictionary['guide-3-desc'];
+
+            document.getElementById('news-title').textContent = dictionary['news-title'];
+            document.getElementById('news-desc').textContent = dictionary['news-desc'];
+            document.getElementById('news-btn').textContent = dictionary['news-btn'];
+            document.getElementById('sub-email').placeholder = dictionary['sub-email-placeholder'];
+        }
+
+        // Navegação das etapas do Infográfico
+        function setActiveStep(stepNum) {
+            activeTokenizationStep = stepNum;
+            updateStepView();
+        }
+
+        // Atualização visual do Infográfico
+        function updateStepView() {
+            // Abas Ativas
+            for (let i = 1; i <= 4; i++) {
+                const tab = document.getElementById(`step-tab-${i}`);
+                if (i === activeTokenizationStep) {
+                    tab.className = "py-2 px-1 text-center border-b-4 border-interceptRed text-xs font-bold transition-all duration-300 text-black dark:text-white";
+                } else {
+                    tab.className = "py-2 px-1 text-center border-b-4 border-gray-200 dark:border-gray-700 text-xs text-gray-400 dark:text-gray-500 font-bold transition-all duration-300 hover:text-gray-600 dark:hover:text-gray-300";
+                }
+            }
+
+            // Bloco Explicativo
+            const data = TOKEN_STEPS[currentLanguage][activeTokenizationStep];
+            const explanationBox = document.getElementById('step-explanation');
+            
+            // Gráficos SVG para cada Etapa
+            let stepGraphic = '';
+            if (activeTokenizationStep === 1) {
+                stepGraphic = `
+                    <div class="flex items-center space-x-3 mb-4 text-rose-600 dark:text-rose-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        <span class="font-bold text-sm tracking-widest font-mono bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1 rounded text-rose-800 dark:text-rose-300">SSL/TLS SECURE CHANNELS</span>
+                    </div>
+                `;
+            } else if (activeTokenizationStep === 2) {
+                stepGraphic = `
+                    <div class="flex items-center space-x-3 mb-4 text-blue-600 dark:text-blue-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+                        </svg>
+                        <span class="font-bold text-sm tracking-widest font-mono bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded text-blue-800 dark:text-blue-300">VISA / MASTERCARD GATEWAYS</span>
+                    </div>
+                `;
+            } else if (activeTokenizationStep === 3) {
+                stepGraphic = `
+                    <div class="flex items-center space-x-3 mb-4 text-emerald-600 dark:text-emerald-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <span class="font-bold text-sm tracking-widest font-mono bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded text-emerald-800 dark:text-emerald-300">TOKENIZED PSEUDONYM GENERATED</span>
+                    </div>
+                `;
+            } else if (activeTokenizationStep === 4) {
+                stepGraphic = `
+                    <div class="flex items-center space-x-3 mb-4 text-amber-600 dark:text-amber-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        <span class="font-bold text-sm tracking-widest font-mono bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded text-amber-800 dark:text-amber-300">PCI-DSS SECURITY COMPLIANCE</span>
+                    </div>
+                `;
+            }
+
+            explanationBox.innerHTML = `
+                <div>
+                    ${stepGraphic}
+                    <h4 class="font-bold text-lg text-gray-900 dark:text-white mb-2">${data.title}</h4>
+                    <p class="text-sm md:text-base text-gray-600 dark:text-gray-300 leading-relaxed">${data.detail}</p>
+                </div>
+                <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <button onclick="setActiveStep(${activeTokenizationStep > 1 ? activeTokenizationStep - 1 : 4})" class="text-xs text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white font-mono transition-all">← ANTERIOR</button>
+                    <span class="text-xs font-mono text-gray-400 dark:text-gray-500">PÁGINA ${activeTokenizationStep}/4</span>
+                    <button onclick="setActiveStep(${activeTokenizationStep < 4 ? activeTokenizationStep + 1 : 1})" class="text-xs text-interceptRed hover:text-rose-800 dark:hover:text-rose-300 font-mono font-bold transition-all">PRÓXIMO →</button>
+                </div>
+            `;
+        }
+
+        // Lógica Interativa do Questionário
+        function handleQuizAnswer(isYes) {
+            quizAnswers.push(isYes);
+            if (quizStep < 3) {
+                quizStep++;
+                renderQuizQuestion();
+            } else {
+                renderQuizResults();
+            }
+        }
+
+        function resetQuiz() {
+            quizStep = 1;
+            quizAnswers = [];
+            renderQuizQuestion();
+        }
+
+        // Desenha perguntas dinamicamente no ecran
+        function renderQuizQuestion() {
+            const dictionary = TRANSLATIONS[currentLanguage];
+            const quizContainer = document.getElementById('quiz-container');
+            
+            let questionText = '';
+            let btnYesText = '';
+            let btnNoText = '';
+
+            if (quizStep === 1) {
+                questionText = dictionary['quiz-p1'];
+                btnYesText = dictionary['quiz-p1-y'];
+                btnNoText = dictionary['quiz-p1-n'];
+            } else if (quizStep === 2) {
+                questionText = dictionary['quiz-p2'];
+                btnYesText = dictionary['quiz-p2-y'];
+                btnNoText = dictionary['quiz-p2-n'];
+            } else if (quizStep === 3) {
+                questionText = dictionary['quiz-p3'];
+                btnYesText = dictionary['quiz-p3-y'];
+                btnNoText = dictionary['quiz-p3-n'];
+            }
+
+            quizContainer.innerHTML = `
+                <div id="quiz-question-box" class="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/15 animate-fade-in">
+                    <span class="text-rose-300 text-xs font-mono font-bold uppercase tracking-wider">${currentLanguage === 'pt-BR' ? `Passo ${quizStep} de 3` : (currentLanguage === 'es-PR' ? `Paso ${quizStep} de 3` : `Step ${quizStep} of 3`)}</span>
+                    <h4 class="text-lg font-bold mt-1 mb-4 leading-snug">${questionText}</h4>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button onclick="handleQuizAnswer(true)" class="bg-white text-rose-900 hover:bg-rose-50 font-bold px-6 py-3 rounded-xl transition-all shadow-sm">${btnYesText}</button>
+                        <button onclick="handleQuizAnswer(false)" class="bg-rose-800 text-white hover:bg-rose-700 border border-white/25 font-bold px-6 py-3 rounded-xl transition-all">${btnNoText}</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Calcula a pontuação e exibe resultados customizados
+        function renderQuizResults() {
+            const dictionary = TRANSLATIONS[currentLanguage];
+            const quizContainer = document.getElementById('quiz-container');
+            
+            const yesCount = quizAnswers.filter(a => a === true).length;
+            
+            let scoreTitle = '';
+            let scoreDetail = '';
+            let scoreColor = '';
+
+            if (yesCount === 0) {
+                scoreTitle = currentLanguage === 'pt-BR' ? 'Blindado' : (currentLanguage === 'es-PR' ? 'Blindado' : 'Fully Bulletproof');
+                scoreDetail = dictionary['quiz-score-low'];
+                scoreColor = 'bg-emerald-500 text-emerald-950 border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800';
+            } else if (yesCount === 1) {
+                scoreTitle = currentLanguage === 'pt-BR' ? 'Risco Moderado' : (currentLanguage === 'es-PR' ? 'Riesgo Moderado' : 'Moderate Risk');
+                scoreDetail = dictionary['quiz-score-med'];
+                scoreColor = 'bg-amber-500 text-amber-950 border-amber-400 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800';
+            } else {
+                scoreTitle = currentLanguage === 'pt-BR' ? 'Atenção Crítica!' : (currentLanguage === 'es-PR' ? '¡Riesgo Elevado!' : 'High Risk!');
+                scoreDetail = dictionary['quiz-score-high'];
+                scoreColor = 'bg-rose-600 text-white border-rose-500 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800';
+            }
+
+            quizContainer.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 text-journalBlack dark:text-white rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
+                    <h4 class="font-serif font-bold text-xl mb-3">${currentLanguage === 'pt-BR' ? 'Seu Diagnóstico Customizado' : (currentLanguage === 'es-PR' ? 'Tu Diagnóstico de Seguridad' : 'Your Security Assessment')}</h4>
+                    <div class="p-4 rounded-xl border ${scoreColor} mb-4 flex items-center space-x-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        <div>
+                            <p class="text-xs font-mono font-bold uppercase tracking-widest opacity-85">${currentLanguage === 'pt-BR' ? 'Análise Realizada' : (currentLanguage === 'es-PR' ? 'Resultado Obtenido' : 'Diagnostic Complete')}</p>
+                            <h5 class="font-bold text-lg leading-tight">${scoreTitle}</h5>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-6">${scoreDetail}</p>
+                    <button onclick="resetQuiz()" class="w-full text-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 font-mono font-bold text-xs py-3 rounded-xl transition-all uppercase tracking-wider">
+                        ${currentLanguage === 'pt-BR' ? 'Refazer Teste' : (currentLanguage === 'es-PR' ? 'Reintentar Evaluación' : 'Retake Diagnostic')}
+                    </button>
+                </div>
+            `;
+        }
+
+        // Alternador de Visual (Estilo White Editorial vs Dark Web Terminal)
+        function toggleViewMode() {
+            // Aplicamos a classe no documentElement (<html>) para que o Tailwind aplique corretamente o suporte dark ao body e filhos
+            const htmlElement = document.documentElement;
+            if (currentTheme === 'light') {
+                currentTheme = 'dark-web';
+                htmlElement.classList.add('dark');
+            } else {
+                currentTheme = 'light';
+                htmlElement.classList.remove('dark');
+            }
+            updateStepView();
+        }
+
+        // Gestão de Barra de Progresso e Guia de Leitura Flutuante
+        function initScrollIndicator() {
+            window.addEventListener('scroll', () => {
+                const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const progressWidth = (window.pageYOffset / totalHeight) * 100;
+                document.getElementById('progress-bar').style.width = `${progressWidth}%`;
+
+                // Destaca o ponto ativo no Assistente de Leitura
+                const sections = ['pyramid-lead', 'pyramid-context', 'pyramid-actions'];
+                sections.forEach(secId => {
+                    const el = document.getElementById(secId);
+                    const rect = el.getBoundingClientRect();
+                    const navBtn = document.getElementById(`nav-btn-${secId.split('-')[1]}`);
+                    
+                    if (rect.top <= 120 && rect.bottom >= 120) {
+                        navBtn.className = "w-full text-left p-1.5 rounded transition-all duration-200 flex items-center space-x-2 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 font-semibold";
+                        navBtn.querySelector('span:first-child').className = "w-2 h-2 rounded-full bg-interceptRed";
+                    } else {
+                        navBtn.className = "w-full text-left p-1.5 rounded transition-all duration-200 flex items-center space-x-2 text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800";
+                        navBtn.querySelector('span:first-child').className = "w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-700";
+                    }
+                });
+            });
+        }
+
+        // Rolamento suave para secções específicas
+        function scrollToSection(sectionId) {
+            const el = document.getElementById(sectionId);
+            el.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Submissão do Formulário
+        function handleSubscribe(event) {
+            event.preventDefault();
+            const emailInput = document.getElementById('sub-email');
+            showToast(TRANSLATIONS[currentLanguage]['toast-subscribed']);
+            emailInput.value = '';
+        }
+
+        // Partilha de Hiperligação (Copiar link)
+        function shareArticle() {
+            const dummy = document.createElement('input');
+            const text = window.location.href;
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+
+            showToast(TRANSLATIONS[currentLanguage]['toast-copied']);
+        }
+
+        // Dispara uma notificação Toast na parte inferior esquerda
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            const toastMsg = document.getElementById('toast-message');
+            
+            toastMsg.textContent = message;
+            toast.className = "fixed bottom-6 left-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-gray-800 text-xs font-mono translate-y-0 opacity-100 transition-all duration-300 pointer-events-auto flex items-center space-x-3";
+            
+            setTimeout(() => {
+                toast.className = "fixed bottom-6 left-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-gray-800 text-xs font-mono translate-y-24 opacity-0 transition-all duration-300 pointer-events-none flex items-center space-x-3";
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

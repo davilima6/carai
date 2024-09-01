@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing Strategy - Deep vs. Shallow Snapshots</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+                        mono: ['"Fira Code"', 'monospace'],
+                    },
+                    colors: {
+                        interceptRed: '#E11D48',
+                        agentBlue: '#3B82F6',
+                        agentEmerald: '#10B981',
+                        agentAmber: '#F59E0B',
+                        journalBlack: '#0F0F11',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .transition-all {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Barra de rolamento personalizada */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4B5563;
+            border-radius: 3px;
+        }
+
+        /* Regras de escala agressiva para o modo Ecrã Inteiro (Fullscreen) */
+        .fullscreen-active #slide-content-frame {
+            padding: 3rem;
+        }
+
+        .fullscreen-active h2 {
+            font-size: 3rem !important;
+            margin-bottom: 2.5rem !important;
+        }
+
+        .fullscreen-active p,
+        .fullscreen-active span,
+        .fullscreen-active div,
+        .fullscreen-active table,
+        .fullscreen-active li,
+        .fullscreen-active aside {
+            font-size: 1.3rem !important;
+            line-height: 1.8 !important;
+        }
+
+        .fullscreen-active svg {
+            transform: scale(1.45);
+            margin-bottom: 4rem;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .fullscreen-active .grid {
+            gap: 2.5rem !important;
+        }
+
+        /* Custom Directional View Transitions API Animation Rules */
+        #slide-content-frame {
+            view-transition-name: slide-content;
+        }
+
+        /* Forward (Next) slide transition: slide left and fade */
+        .nav-forward::view-transition-old(slide-content) {
+            animation: 250ms cubic-bezier(0.4, 0, 0.2, 1) both fade-out,
+                250ms cubic-bezier(0.4, 0, 0.2, 1) both slide-out-to-left;
+        }
+
+        .nav-forward::view-transition-new(slide-content) {
+            animation: 250ms cubic-bezier(0.4, 0, 0.2, 1) both fade-in,
+                250ms cubic-bezier(0.4, 0, 0.2, 1) both slide-in-from-right;
+        }
+
+        /* Backward (Back) slide transition: slide right and fade */
+        .nav-backward::view-transition-old(slide-content) {
+            animation: 250ms cubic-bezier(0.4, 0, 0.2, 1) both fade-out,
+                250ms cubic-bezier(0.4, 0, 0.2, 1) both slide-out-to-right;
+        }
+
+        .nav-backward::view-transition-new(slide-content) {
+            animation: 250ms cubic-bezier(0.4, 0, 0.2, 1) both fade-in,
+                250ms cubic-bezier(0.4, 0, 0.2, 1) both slide-in-from-left;
+        }
+
+        @keyframes fade-out {
+            to {
+                opacity: 0;
+            }
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+            }
+        }
+
+        @keyframes slide-out-to-left {
+            to {
+                transform: translateX(-40px);
+            }
+        }
+
+        @keyframes slide-in-from-right {
+            from {
+                transform: translateX(40px);
+            }
+        }
+
+        @keyframes slide-out-to-right {
+            to {
+                transform: translateX(40px);
+            }
+        }
+
+        @keyframes slide-in-from-left {
+            from {
+                transform: translateX(-40px);
+            }
+        }
+    </style>
+</head>
+
+<body
+    class="font-sans bg-gray-50 text-journalBlack dark:bg-gray-950 dark:text-gray-100 transition-colors duration-500 overflow-x-hidden min-h-screen flex flex-col justify-between">
+
+    <!-- Minimalist Exit Fullscreen Floating Button -->
+    <button onclick="exitFullscreenMode()" id="exit-fullscreen-btn"
+        class="fixed top-6 right-6 z-[90] hidden bg-rose-600 hover:bg-rose-700 text-white p-3 rounded-full shadow-2xl transition-all"
+        title="Exit Fullscreen (Esc / F)">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+    </button>
+
+    <!-- Discretely Positioned Theme Toggle -->
+    <div id="theme-toggle-container" class="fixed top-6 right-6 z-40">
+        <button onclick="toggleTheme()"
+            class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shadow-sm"
+            title="Toggle Light/Dark Mode">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Reading Progress Bar -->
+    <div id="progress-container" class="h-1.5 w-full bg-gray-100 dark:bg-gray-800 sticky top-0 z-50">
+        <div id="slide-progress" class="h-full bg-interceptRed w-1/10 transition-all duration-300"></div>
+    </div>
+
+    <!-- Main Slide Workspace (Maximized for Presentation) -->
+    <main class="flex-grow flex flex-col items-center justify-center max-w-7xl w-full mx-auto p-4 md:p-6"
+        id="workspace-container">
+
+        <!-- Expanded Slide Viewport -->
+        <section
+            class="w-full md:max-w-5xl lg:max-w-6xl flex flex-col justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 shadow-sm relative min-h-[520px] md:min-h-[640px] lg:min-h-[700px] transition-all"
+            id="slide-viewport">
+
+            <!-- Slide Meta Index Header -->
+            <div id="slide-header"
+                class="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-800 pb-3">
+                <span class="text-xs font-mono font-bold tracking-widest text-interceptRed uppercase">ECOMMERCE FRONTEND
+                    STRATEGY</span>
+                <span
+                    class="text-xs font-mono bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded text-gray-600 dark:text-gray-300"
+                    id="slide-counter">SLIDE 1 OF 10</span>
+            </div>
+
+            <!-- Core Render Area for Slides -->
+            <div class="flex-grow flex flex-col justify-center items-center py-4" id="slide-content-frame">
+                <!-- Dynamic slide-specific elements render here -->
+            </div>
+
+            <!-- Slide Navigation Controls -->
+            <div id="slide-controls"
+                class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
+                <button id="prev-btn" onclick="prevSlide()"
+                    class="px-4 py-2 text-xs font-mono font-bold rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-700 dark:text-gray-300 disabled:opacity-20 disabled:pointer-events-none">
+                    &larr;
+                </button>
+
+                <!-- Dot indicators -->
+                <div class="flex space-x-1.5" id="navigation-dots">
+                    <!-- Javascript generated dot indicators -->
+                </div>
+
+                <button id="next-btn" onclick="nextSlide()"
+                    class="px-4 py-2 text-xs font-mono font-bold rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-sm disabled:opacity-20 disabled:pointer-events-none">
+                    &rarr;
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Collapsible Horizontal Speaker Drawer -->
+    <section id="speaker-drawer"
+        class="w-full bg-gray-900 border-t border-gray-800 text-gray-100 transition-all duration-300 relative z-40">
+        <div class="bg-gray-950 px-6 py-2.5 flex items-center justify-between cursor-pointer border-b border-gray-800"
+            onclick="toggleSpeakerDrawer()">
+            <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+                <span class="text-xs font-mono font-bold tracking-widest text-gray-400 uppercase">SPEAKER NOTES (CLICK
+                    TO COLLAPSE/EXPAND)</span>
+            </div>
+            <div class="flex items-center space-x-4 font-mono text-xs text-gray-400">
+                <!-- Font size control -->
+                <div class="flex items-center space-x-1.5 bg-gray-800 rounded p-0.5" onclick="event.stopPropagation()">
+                    <button onclick="changeFontSize(-2)"
+                        class="px-2 py-0.5 text-xs font-bold hover:bg-gray-700 rounded transition-all">-</button>
+                    <span class="text-[10px] font-mono text-gray-300 px-1" id="font-size-label">15px</span>
+                    <button onclick="changeFontSize(2)"
+                        class="px-2 py-0.5 text-xs font-bold hover:bg-gray-700 rounded transition-all">+</button>
+                </div>
+                <!-- Toggle arrow -->
+                <span id="drawer-arrow"
+                    class="text-xs transition-transform duration-300 transform rotate-0">&#9660;</span>
+            </div>
+        </div>
+
+        <!-- Speaker Script Display Area -->
+        <div id="speaker-drawer-content"
+            class="px-6 py-4 overflow-y-auto max-h-40 font-serif italic text-gray-300 leading-relaxed text-sm md:text-base">
+            <!-- Dynamic presenter text updates here -->
+        </div>
+    </section>
+
+    <!-- Visual Toast Popup -->
+    <div id="toast-notification"
+        class="fixed bottom-6 left-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-gray-800 text-xs font-mono translate-y-24 opacity-0 transition-all duration-300 pointer-events-none flex items-center space-x-3">
+        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+        <span id="toast-message">Copied!</span>
+    </div>
+
+    <!-- MAIN PRESENTATION SCRIPT DATABASE -->
+    <script>
+        const PRESENTATION_SLIDES = [
+            {
+                title: "Rethinking Component Testing",
+                subtitle: "Breaking the 'Update & Ignore' cycle of UI Snapshots",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in flex flex-col items-center">
+                        <div class="relative w-44 h-44 mb-6 flex items-center justify-center">
+                            <!-- SVG: Component node turning into real interaction -->
+                            <svg class="w-full h-full text-rose-500" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="50" cy="50" r="40" stroke="currentColor" stroke-opacity="0.1" stroke-width="2" class="dark:text-white text-black" />
+                                <rect x="30" y="30" width="40" height="40" rx="8" stroke="#3B82F6" stroke-width="2.5" class="animate-pulse" />
+                                <path d="M50 15 L50 30 M50 70 L50 85 M15 50 L30 50 M70 50 L85 50" stroke="#E11D48" stroke-width="2" stroke-linecap="round" />
+                                <circle cx="50" cy="50" r="4" fill="#E11D48" />
+                            </svg>
+                        </div>
+                        <h2 class="text-3xl md:text-4xl font-serif font-black tracking-tight leading-tight text-gray-900 dark:text-white mb-2">Beyond the Blind update</h2>
+                        <p class="text-xs font-mono text-gray-500 uppercase tracking-widest mb-4">Moving from low-signal snapshots to high-confidence assertions</p>
+
+                        <!-- High Density Summary Card -->
+                        <div class="mt-2 space-y-2.5 max-w-md text-left bg-gray-50 dark:bg-gray-800/80 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <div class="flex items-start gap-3 text-xs md:text-sm font-mono text-gray-600 dark:text-gray-300">
+                                <span class="text-rose-500 font-bold">⚠️</span>
+                                <span>Snapshots are easily ignored in PRs, creating a false sense of security.</span>
+                            </div>
+                            <div class="flex items-start gap-3 text-xs md:text-sm font-mono text-gray-600 dark:text-gray-300">
+                                <span class="text-blue-500 font-bold">🎯</span>
+                                <span>Behavior-targeted testing ensures critical user journeys are actually protected.</span>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                script: "Hi everyone. Let's talk about our UI test suite. Today, we have hundreds of snapshots. Ask yourself: when was the last time you carefully reviewed a 500-line DOM diff in a PR instead of just running 'jest -u'? We are moving past automated snap-dumping. Today, we'll weigh shallow vs deep snapshots and discuss why behavior-targeted unit tests are the ultimate standard for confidence."
+            },
+            {
+                title: "Agenda: Deep vs. Shallow Snapshots",
+                visual: `
+                    <div class="w-full max-w-4xl animate-fade-in text-left">
+                        <h2 class="text-2xl md:text-3xl font-serif font-black text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                            <span class="text-rose-500">☰</span> Presentation Overview
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 font-mono text-xs md:text-sm text-gray-600 dark:text-gray-300">
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4 shadow-sm">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">1</span>
+                                <span>Shallow Snapshots - Isolated Unit Design</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4 shadow-sm">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">2</span>
+                                <span>Deep Snapshots - Integration Confidence</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4 shadow-sm">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">3</span>
+                                <span>The Danger of Cascading Diffs</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4 shadow-sm">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">4</span>
+                                <span>Understanding 'Update and Ignore' Fatigue</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4 shadow-sm">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">5</span>
+                                <span>The expressiveness of React Testing Library</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4 shadow-sm">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">6</span>
+                                <span>Special Trap: Snapshotting raw CSS-in-JS & Tailwind</span>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                script: "Let's align on what we are covering. We'll start with the technical comparison between Shallow and Deep snapshots. We'll examine why deep snapshots break on irrelevant adjustments, why that causes severe review apathy, and finally, look at the transition path to user-centric assertions."
+            },
+            {
+                title: "Shallow Snapshot Tests",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in">
+                        <div class="w-full flex justify-center mb-4">
+                            <!-- SVG: Isolated tree nodes (Shallow representation) -->
+                            <svg class="w-28 h-28 text-blue-500" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="50" cy="20" r="12" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.1" />
+                                <line x1="42" y1="30" x2="25" y2="55" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3" />
+                                <line x1="58" y1="30" x2="75" y2="55" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3" />
+                                <circle cx="20" cy="65" r="10" stroke="currentColor" stroke-width="2.5" class="opacity-50" />
+                                <circle cx="80" cy="65" r="10" stroke="currentColor" stroke-width="2.5" class="opacity-50" />
+                                <text x="50" y="24" fill="currentColor" class="text-blue-500 font-mono text-[8px]" font-weight="bold" text-anchor="middle">Parent</text>
+                            </div>
+                        </div>
+                        <h2 class="text-2xl font-serif font-black text-gray-900 dark:text-white mb-2">Shallow Snapshotting</h2>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left font-mono text-xs">
+                            <div class="bg-emerald-500/10 border-l-4 border-emerald-500 p-3.5 rounded-r">
+                                <span class="text-emerald-500 font-bold block mb-1">PROS: True Unit Isolation</span>
+                                Renders only the parent component. Children like &lt;Button /&gt; remain unexpanded placeholders. Prevents cascading breakages.
+                            </div>
+                            <div class="bg-rose-500/10 border-l-4 border-rose-500 p-3.5 rounded-r">
+                                <span class="text-rose-500 font-bold block mb-1">CONS: False Security</span>
+                                Does not guarantee the child component consumes passed properties properly. Highly coupled to exact component names.
+                            </div>
+                        </div>
+                    </div>
+                `,
+                script: "Shallow snapshots isolate the target component completely. By leaving child tags unexpanded, we prevent simple buttons from triggering breaks across parent tests. However, it gives a false sense of safety: you only prove props are dispatched, not that the component operates seamlessly. It tests implementation, not user outcomes."
+            },
+            {
+                title: "Deep Snapshot Tests",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in">
+                        <div class="w-full flex justify-center mb-4">
+                            <!-- SVG: Fully expanded subtree nodes (Deep representation) -->
+                            <svg class="w-28 h-28 text-purple-500" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="50" cy="20" r="12" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.1" />
+                                <line x1="42" y1="30" x2="25" y2="55" stroke="currentColor" stroke-width="2.5" />
+                                <line x1="58" y1="30" x2="75" y2="55" stroke="currentColor" stroke-width="2.5" />
+                                <circle cx="20" cy="65" r="10" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.1" />
+                                <circle cx="80" cy="65" r="10" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.1" />
+                            </div>
+                        </div>
+                        <h2 class="text-2xl font-serif font-black text-gray-900 dark:text-white mb-2">Deep (Full) Snapshotting</h2>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left font-mono text-xs">
+                            <div class="bg-emerald-500/10 border-l-4 border-emerald-500 p-3.5 rounded-r">
+                                <span class="text-emerald-500 font-bold block mb-1">PROS: High Fidelity</span>
+                                Renders down to deep base DOM nodes. Verifies real integrations, data flow, and exact HTML structure.
+                            </div>
+                            <div class="bg-rose-500/10 border-l-4 border-rose-500 p-3.5 rounded-r">
+                                <span class="text-rose-500 font-bold block mb-1">CONS: Unreadable PR Noise</span>
+                                Modifying a low-level container propagates dozens of breaking snapshots. Results in thousands of unreadable raw diff lines.
+                            </div>
+                        </div>
+                    </div>
+                `,
+                script: "Deep snapshots give real integration coverage down to exact DOM nodes. If something breaks in a nested container, the test signals it. But the trade-off is extreme friction. A small change in a low-level button will break every single snapshot upstream, creating huge, unreviewable pull request diffs."
+            },
+            {
+                title: "The Friction: Cascading Updates",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in">
+                        <div class="w-full flex justify-center mb-4">
+                            <!-- SVG: One small node breakage cascading up to multiple components -->
+                            <svg class="w-48 h-24 text-rose-500 animate-pulse" viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="80" y="10" width="40" height="20" rx="3" stroke="currentColor" stroke-width="2" class="opacity-50" />
+                                <path d="M100 30 L60 60 M100 30 L140 60" stroke="currentColor" stroke-width="1.5" class="opacity-50" />
+                                <!-- Breaking children -->
+                                <rect x="40" y="60" width="40" height="20" rx="3" stroke="#E11D48" stroke-width="3" />
+                                <rect x="120" y="60" width="40" height="20" rx="3" stroke="#E11D48" stroke-width="3" />
+                                <circle cx="100" cy="20" r="4" fill="#3B82F6" />
+                                <circle cx="60" cy="70" r="4" fill="#E11D48" />
+                                <circle cx="140" cy="70" r="4" fill="#E11D48" />
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-serif font-black text-gray-900 dark:text-white mb-2">The Propaganda of One-Line Updates</h2>
+
+                        <!-- High Density Slide Content -->
+                        <div class="text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 font-mono text-xs md:text-sm text-gray-600 dark:text-gray-300">
+                            <strong>Why Reviewing Breaks Down:</strong> Changing a single CSS wrapper or wrapper DIV propagates breaks to 30+ separate parent snaps. Diffs become a massive, noisy sea of structural details, forcing developers to look away.
+                        </div>
+                    </div>
+                `,
+                script: "This is the core friction of deep snapshots. You rename a CSS wrapper class or add a structural div for styling. Suddenly, thirty snapshot tests break. The PR contains 2,000 lines of modifications. Nobody is reviewing that line-by-line. It completely defeats the point of a review."
+            },
+            {
+                title: "Fatigue: The 'Update & Ignore' Loop",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in">
+                        <div class="w-full flex justify-center mb-4">
+                            <!-- SVG: Simple, crisp loop displaying jest -u -->
+                            <svg class="w-32 h-32 text-rose-500 animate-spin" style="animation-duration: 25s;" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="50" cy="50" r="30" stroke="currentColor" stroke-width="2.5" stroke-dasharray="12 6" />
+                                <path d="M78 50 L82 54 L74 54" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-serif font-black text-gray-900 dark:text-white mb-2">The 'jest -u' Anti-Pattern</h2>
+
+                        <!-- High Density Slide Content -->
+                        <div class="text-left bg-rose-500/10 border-l-4 border-rose-500 p-4 rounded text-xs md:text-sm font-mono text-gray-600 dark:text-gray-300">
+                            <strong>The Danger:</strong> Extreme brittleness breeds review apathy. Developers running blind snapshot updates without verifying regressions completely nullify testing confidence.
+                        </div>
+                    </div>
+                `,
+                script: "Because snapshots are so brittle, we fall into the 'update and ignore' loop. We see a broken test, assume it is just a layout adjustment, and type 'jest -u'. That blind update bypasses our safety checks, turning our test suite into complete decoration."
+            },
+            {
+                title: "The Alternative: Expressive Assertions",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in">
+                        <div class="w-full flex justify-center mb-4">
+                            <!-- SVG: Interaction flow with cursor -->
+                            <svg class="w-48 h-20 text-emerald-500" viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="20" y="25" width="60" height="30" rx="4" stroke="currentColor" stroke-width="2" />
+                                <path d="M100 40 H160" stroke="currentColor" stroke-width="2.5" stroke-dasharray="4 4" />
+                                <polygon points="160,35 170,40 160,45" fill="currentColor" />
+                                <text x="50" y="44" fill="currentColor" class="font-mono text-[8px]" font-weight="bold" text-anchor="middle">CLICK BTN</text>
+                                <text x="130" y="32" fill="#3B82F6" class="font-mono text-[7px]" font-weight="bold" text-anchor="middle">state change</text>
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-serif font-black text-gray-900 dark:text-white mb-2">Behavior-Targeted Testing</h2>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left font-mono text-xs">
+                            <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                                <span class="text-emerald-500 font-bold block mb-1">✓ Assert Outcomes, Not Nodes</span>
+                                Focus on what the user actually experiences. Check if clicking 'Add to Cart' updates items count, instead of snapshotting a huge HTML tree.
+                            </div>
+                            <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                                <span class="text-emerald-500 font-bold block mb-1">✓ Resilient to Refactors</span>
+                                Changing component wrappers or wrapper DIV styles won't break your test if the button behavior remains functional.
+                            </div>
+                        </div>
+                    </div>
+                `,
+                script: "Let's build confidence where it matters. We should assert behavior, not component trees. We don't care if a button has a wrapper div or a specific ID; we care if clicking it updates the basket value. Behavior-targeted tests with React Testing Library ensure tests survive refactoring and focus purely on user outcomes."
+            },
+            {
+                title: "The CSS Snapshot Trap",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in">
+                        <h2 class="text-2xl font-serif font-black text-gray-900 dark:text-white mb-4">Aside: Snapshotting Styling & CSS</h2>
+
+                        <!-- Semantic Aside Element for CSS Snapshots -->
+                        <aside class="my-3 p-5 bg-amber-500/10 border-l-4 border-amber-500 rounded-r-2xl shadow-sm text-left font-mono text-xs md:text-sm text-gray-700 dark:text-gray-300">
+                            <div class="font-bold text-amber-600 mb-2">⚠️ PROS & CONS OF STYLING SNAPSHOTS</div>
+                            <div class="space-y-2">
+                                <p><strong>Pros:</strong> Can detect unexpected global style overrides if using inline styles or CSS-in-JS hashes inside rendered trees.</p>
+                                <p><strong>Cons:</strong> Extreme noise. In systems like Tailwind CSS, changing a padding utility class (e.g., from <code class="bg-gray-200 dark:bg-gray-800 px-1 rounded">p-4</code> to <code class="bg-gray-200 dark:bg-gray-800 px-1 rounded">p-5</code>) causes snapshot failures even though the visual impact is subtle and correct.</p>
+                            </div>
+                        </aside>
+
+                        <div class="bg-gray-100 dark:bg-gray-800/80 p-3 rounded-xl border border-gray-200 dark:border-gray-700 font-mono text-[11px] text-gray-600 dark:text-gray-400 mt-2 text-left">
+                            <strong>The Consensus:</strong> Pure DOM-text assertions cannot verify layout changes. For critical layout confidence, we should use Visual Regression Tools (e.g. Playwright or Percy) rather than text snapshot diffs.
+                        </div>
+                    </div>
+                `,
+                script: "Let's address style snapshots. Snapshotting styling classes—especially dynamically generated hash names or utility classes like Tailwind—is a major source of testing noise. You adjust padding by one step, and all snapshots fail. If you want visual confidence, text-based snapshots are useless anyway. We should use real visual regression tools instead."
+            },
+            {
+                title: "Ecommerce Action Blueprint",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in text-left font-mono text-xs md:text-sm">
+                        <h2 class="text-2xl font-serif font-black text-gray-900 dark:text-white mb-4 text-center">Transition Playbook</h2>
+
+                        <div class="space-y-3">
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                                <span class="bg-rose-500 text-white w-6 h-6 flex items-center justify-center rounded font-bold">1</span>
+                                <div><strong>Freeze Snapshots:</strong> Set a team agreement to write no new snapshots for logical files.</div>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                                <span class="bg-rose-500 text-white w-6 h-6 flex items-center justify-center rounded font-bold">2</span>
+                                <div><strong>Write Behavior Tests:</strong> Cover key checkout, cart, and catalog steps with user-event selectors.</div>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                                <span class="bg-rose-500 text-white w-6 h-6 flex items-center justify-center rounded font-bold">3</span>
+                                <div><strong>Refactor:</strong> Delete legacy noisy snapshot files as refactoring happens.</div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                script: "Here is our transition blueprint. Let's make a team agreement: no new snapshots. When we build or refactor features, write behavioral tests that simulate real user clicks and check outs. Slowly, as we modify older files, we'll wipe the noisy snapshots from our codebase."
+            },
+            {
+                title: "Confidence over Noise",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in flex flex-col items-center">
+                        <div class="relative w-28 h-28 mb-4">
+                            <!-- SVG: Clean checkmark within shield -->
+                            <svg class="w-full h-full text-emerald-500" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M50 12 L85 25 L85 55 C85 75 50 90 50 90 C50 90 15 75 15 55 L15 25 Z" stroke="currentColor" stroke-width="3" fill="none" />
+                                <path d="M38 52 L46 60 L62 42" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl md:text-3xl font-serif font-black text-gray-900 dark:text-white mb-3">Confidence Over Noise</h2>
+
+                        <div class="text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 text-xs md:text-sm font-mono mb-5 text-gray-600 dark:text-gray-300 max-w-md">
+                            <strong>Final Thought:</strong> High-signal test suites increase shipping speed. Replacing fragile snapshots with robust behavioral assertions means more deploys with less maintenance overhead.
+                        </div>
+
+                        <div class="flex flex-wrap justify-center gap-2">
+                            <span class="bg-rose-500/10 text-rose-500 font-mono text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">01. Less Review Overhead</span>
+                            <span class="bg-blue-500/10 text-blue-500 font-mono text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">02. Higher Signal Diffs</span>
+                            <span class="bg-emerald-500/10 text-emerald-500 font-mono text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">03. Shipping Resilience</span>
+                        </div>
+                        <p class="text-sm font-serif italic text-gray-400 mt-4 font-bold">Questions? Let's discuss.</p>
+                    </div>
+                `,
+                script: "To summarize: our goal is high shipping speed and real production safety. Replacing fragile, ignored snapshot updates with robust behavioral unit tests means cleaner diffs, less maintenance overhead, and actual confidence with every release. Thank you! Let's open the floor to questions."
+            }
+        ];
+
+        // Presentation State Management
+        let currentSlideIndex = 0;
+        let presenterFontSize = 15; // default font size
+        let isSpeakerNotesCollapsed = false;
+        let isFullscreenMode = false;
+
+        // Mobile touch gesture tracking
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        window.onload = function () {
+            renderSlide();
+            setupKeyboardNavigation();
+            setupTouchGestures();
+        };
+
+        // Render Slide elements
+        function renderSlide() {
+            const slide = PRESENTATION_SLIDES[currentSlideIndex];
+            const slideCounter = document.getElementById('slide-counter');
+            const slideContentFrame = document.getElementById('slide-content-frame');
+            const speakerScriptContainer = document.getElementById('speaker-drawer-content');
+            const progressBar = document.getElementById('slide-progress');
+
+            // Set slide counters
+            slideCounter.textContent = `SLIDE ${currentSlideIndex + 1} OF ${PRESENTATION_SLIDES.length}`;
+
+            // Set slide visual framework
+            slideContentFrame.innerHTML = slide.visual;
+
+            // Set speaker notes
+            speakerScriptContainer.textContent = slide.script;
+
+            // Calculate progress bar
+            const progressPercent = ((currentSlideIndex + 1) / PRESENTATION_SLIDES.length) * 100;
+            progressBar.style.width = `${progressPercent}%`;
+
+            // Toggle boundaries of previous and next triggers
+            document.getElementById('prev-btn').disabled = (currentSlideIndex === 0);
+            document.getElementById('next-btn').disabled = (currentSlideIndex === PRESENTATION_SLIDES.length - 1);
+
+            drawDots();
+        }
+
+        // Navigate forward
+        function nextSlide() {
+            if (currentSlideIndex < PRESENTATION_SLIDES.length - 1) {
+                // Apply transition class directionally
+                document.documentElement.className = document.documentElement.className.replace(/nav-forward|nav-backward/g, '');
+                document.documentElement.classList.add('nav-forward');
+
+                if (document.startViewTransition) {
+                    document.startViewTransition(() => {
+                        currentSlideIndex++;
+                        renderSlide();
+                    });
+                } else {
+                    currentSlideIndex++;
+                    renderSlide();
+                }
+            }
+        }
+
+        // Navigate backward
+        function prevSlide() {
+            if (currentSlideIndex > 0) {
+                document.documentElement.className = document.documentElement.className.replace(/nav-forward|nav-backward/g, '');
+                document.documentElement.classList.add('nav-backward');
+
+                if (document.startViewTransition) {
+                    document.startViewTransition(() => {
+                        currentSlideIndex--;
+                        renderSlide();
+                    });
+                } else {
+                    currentSlideIndex--;
+                    renderSlide();
+                }
+            }
+        }
+
+        // Fast Jump Navigation
+        function jumpToSlide(index) {
+            const directionClass = index > currentSlideIndex ? 'nav-forward' : 'nav-backward';
+            document.documentElement.className = document.documentElement.className.replace(/nav-forward|nav-backward/g, '');
+            document.documentElement.classList.add(directionClass);
+
+            if (document.startViewTransition) {
+                document.startViewTransition(() => {
+                    currentSlideIndex = index;
+                    renderSlide();
+                });
+            } else {
+                currentSlideIndex = index;
+                renderSlide();
+            }
+        }
+
+        // Generate circular dots
+        function drawDots() {
+            const dotsContainer = document.getElementById('navigation-dots');
+            dotsContainer.innerHTML = '';
+
+            PRESENTATION_SLIDES.forEach((_, index) => {
+                const dot = document.createElement('button');
+                dot.onclick = () => jumpToSlide(index);
+                dot.className = `w-2 h-2 rounded-full transition-all duration-300 ${index === currentSlideIndex
+                        ? 'bg-rose-600 scale-125'
+                        : 'bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-500'
+                    }`;
+                dot.title = `Go to slide ${index + 1}`;
+                dotsContainer.appendChild(dot);
+            });
+        }
+
+        // Collapsible Drawer Trigger
+        function toggleSpeakerDrawer() {
+            const drawerContent = document.getElementById('speaker-drawer-content');
+            const arrow = document.getElementById('drawer-arrow');
+
+            if (isSpeakerNotesCollapsed) {
+                drawerContent.classList.remove('hidden');
+                arrow.classList.remove('rotate-180');
+                isSpeakerNotesCollapsed = false;
+            } else {
+                drawerContent.classList.add('hidden');
+                arrow.classList.add('rotate-180');
+                isSpeakerNotesCollapsed = true;
+            }
+        }
+
+        // Font Adjustment Controls
+        function changeFontSize(delta) {
+            presenterFontSize = Math.max(11, Math.min(26, presenterFontSize + delta));
+            const fontLabel = document.getElementById('font-size-label');
+            const scriptContainer = document.getElementById('speaker-drawer-content');
+
+            fontLabel.textContent = `${presenterFontSize}px`;
+            scriptContainer.style.fontSize = `${presenterFontSize}px`;
+        }
+
+        // Theme Toggle Control
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+            } else {
+                html.classList.add('dark');
+            }
+        }
+
+        // Immersive Fullscreen presentation mode
+        function enterFullscreenMode() {
+            isFullscreenMode = true;
+            document.getElementById('progress-container').classList.add('hidden');
+            document.getElementById('speaker-drawer').classList.add('hidden');
+            document.getElementById('slide-header').classList.add('hidden');
+            document.getElementById('slide-controls').classList.add('hidden');
+            document.getElementById('theme-toggle-container').classList.add('hidden');
+            document.getElementById('exit-fullscreen-btn').classList.remove('hidden');
+
+            const slideViewport = document.getElementById('slide-viewport');
+            slideViewport.classList.add('fullscreen-active');
+            slideViewport.classList.remove('md:max-w-5xl', 'lg:max-w-6xl', 'min-h-[520px]', 'md:min-h-[640px]', 'lg:min-h-[700px]');
+            slideViewport.classList.add('w-screen', 'h-screen', 'border-0', 'rounded-none', 'p-12', 'md:p-20', 'lg:p-28');
+
+            showToast("Fullscreen Active. Press ESC or F to exit.");
+        }
+
+        // Exit Immersive Fullscreen
+        function exitFullscreenMode() {
+            isFullscreenMode = false;
+            document.getElementById('progress-container').classList.remove('hidden');
+            document.getElementById('speaker-drawer').classList.remove('hidden');
+            document.getElementById('slide-header').classList.remove('hidden');
+            document.getElementById('slide-controls').classList.remove('hidden');
+            document.getElementById('theme-toggle-container').classList.remove('hidden');
+            document.getElementById('exit-fullscreen-btn').classList.add('hidden');
+
+            const slideViewport = document.getElementById('slide-viewport');
+            slideViewport.classList.remove('fullscreen-active');
+            slideViewport.classList.remove('w-screen', 'h-screen', 'border-0', 'rounded-none', 'p-12', 'md:p-20', 'lg:p-28');
+            slideViewport.classList.add('md:max-w-5xl', 'lg:max-w-6xl', 'min-h-[520px]', 'md:min-h-[640px]', 'lg:min-h-[700px]');
+        }
+
+        // Configure keyboard events
+        function setupKeyboardNavigation() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight' || e.key === 'Space') {
+                    e.preventDefault();
+                    nextSlide();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    prevSlide();
+                } else if (e.key === 'Escape' && isFullscreenMode) {
+                    e.preventDefault();
+                    exitFullscreenMode();
+                } else if (e.key === 'f' || e.key === 'F') {
+                    e.preventDefault();
+                    if (isFullscreenMode) {
+                        exitFullscreenMode();
+                    } else {
+                        enterFullscreenMode();
+                    }
+                }
+            });
+        }
+
+        // Touch swiping handlers
+        function setupTouchGestures() {
+            const slideViewport = document.getElementById('slide-viewport');
+
+            slideViewport.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            slideViewport.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipeGesture();
+            }, { passive: true });
+        }
+
+        function handleSwipeGesture() {
+            const minSwipeDistance = 50;
+            const diffX = touchStartX - touchEndX;
+
+            if (Math.abs(diffX) > minSwipeDistance) {
+                if (diffX > 0) {
+                    nextSlide();
+                } else {
+                    prevSlide();
+                }
+            }
+        }
+
+        // Toast trigger helper
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            const toastMsg = document.getElementById('toast-message');
+
+            toastMsg.textContent = message;
+            toast.className = "fixed bottom-6 left-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-gray-800 text-xs font-mono translate-y-0 opacity-100 transition-all duration-300 pointer-events-auto flex items-center space-x-3";
+
+            setTimeout(() => {
+                toast.className = "fixed bottom-6 left-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-gray-800 text-xs font-mono translate-y-24 opacity-0 transition-all duration-300 pointer-events-none flex items-center space-x-3";
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

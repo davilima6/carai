@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presenter Console - Upskill your (Agent) Skills</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+                        mono: ['"Fira Code"', 'monospace'],
+                    },
+                    colors: {
+                        interceptRed: '#E11D48',
+                        agentBlue: '#3B82F6',
+                        agentEmerald: '#10B981',
+                        agentAmber: '#F59E0B',
+                        journalBlack: '#0F0F11',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .transition-all {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Barra de rolamento personalizada */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4B5563;
+            border-radius: 3px;
+        }
+
+        /* Regras de escala agressiva para o modo Ecrã Inteiro (Fullscreen) */
+        .fullscreen-active #slide-content-frame {
+            padding: 2.5rem;
+        }
+        .fullscreen-active h2 {
+            font-size: 2.75rem !important;
+            margin-bottom: 2rem !important;
+        }
+        .fullscreen-active p,
+        .fullscreen-active span,
+        .fullscreen-active div,
+        .fullscreen-active table,
+        .fullscreen-active li {
+            font-size: 1.25rem !important;
+            line-height: 1.8 !important;
+        }
+        .fullscreen-active svg {
+            transform: scale(1.4);
+            margin-bottom: 3.5rem;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .fullscreen-active .grid {
+            gap: 2rem !important;
+        }
+
+        /* Custom Directional View Transitions API Animation Rules */
+        #slide-content-frame {
+            view-transition-name: slide-content;
+        }
+
+        /* Forward (Next) slide transition: slide left and fade */
+        .nav-forward::view-transition-old(slide-content) {
+            animation: 250ms cubic-bezier(0.4, 0, 0.2, 1) both fade-out,
+                       250ms cubic-bezier(0.4, 0, 0.2, 1) both slide-out-to-left;
+        }
+        .nav-forward::view-transition-new(slide-content) {
+            animation: 250ms cubic-bezier(0.4, 0, 0.2, 1) both fade-in,
+                       250ms cubic-bezier(0.4, 0, 0.2, 1) both slide-in-from-right;
+        }
+
+        /* Backward (Back) slide transition: slide right and fade */
+        .nav-backward::view-transition-old(slide-content) {
+            animation: 250ms cubic-bezier(0.4, 0, 0.2, 1) both fade-out,
+                       250ms cubic-bezier(0.4, 0, 0.2, 1) both slide-out-to-right;
+        }
+        .nav-backward::view-transition-new(slide-content) {
+            animation: 250ms cubic-bezier(0.4, 0, 0.2, 1) both fade-in,
+                       250ms cubic-bezier(0.4, 0, 0.2, 1) both slide-in-from-left;
+        }
+
+        @keyframes fade-out {
+            to { opacity: 0; }
+        }
+        @keyframes fade-in {
+            from { opacity: 0; }
+        }
+        @keyframes slide-out-to-left {
+            to { transform: translateX(-40px); }
+        }
+        @keyframes slide-in-from-right {
+            from { transform: translateX(40px); }
+        }
+        @keyframes slide-out-to-right {
+            to { transform: translateX(40px); }
+        }
+        @keyframes slide-in-from-left {
+            from { transform: translateX(-40px); }
+        }
+    </style>
+</head>
+<body class="font-sans bg-gray-50 text-journalBlack dark:bg-gray-950 dark:text-gray-100 transition-colors duration-500 overflow-x-hidden min-h-screen flex flex-col justify-between">
+
+    <!-- Botão Flutuante Minimalista para Fechar o Modo Ecrã Inteiro -->
+    <button onclick="exitFullscreenMode()" id="exit-fullscreen-btn" class="fixed top-6 right-6 z-[90] hidden bg-rose-600 hover:bg-rose-700 text-white p-3 rounded-full shadow-2xl transition-all" title="Sair do Ecrã Inteiro (Esc / F)">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+    </button>
+
+    <!-- Alternador Flutuante de Tema (Posicionado discretamente no canto superior direito) -->
+    <div id="theme-toggle-container" class="fixed top-6 right-6 z-40">
+        <button onclick="toggleTheme()" class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shadow-sm" title="Alternar Tema Claro/Escuro">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Indicador de Progresso de Leitura do Slide -->
+    <div id="progress-container" class="h-1.5 w-full bg-gray-100 dark:bg-gray-800 sticky top-0 z-50">
+        <div id="slide-progress" class="h-full bg-interceptRed w-1/13 transition-all duration-300"></div>
+    </div>
+
+    <!-- Contentor Principal (Área Maximizada para os Slides) -->
+    <main class="flex-grow flex flex-col items-center justify-center max-w-7xl w-full mx-auto p-4 md:p-6" id="workspace-container">
+        
+        <!-- Viewport do Slide (Ampliado para md:max-w-5xl lg:max-w-6xl) -->
+        <section class="w-full md:max-w-5xl lg:max-w-6xl flex flex-col justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 shadow-sm relative min-h-[500px] md:min-h-[620px] lg:min-h-[680px] transition-all" id="slide-viewport">
+            
+            <!-- Cabeçalho Interno do Slide -->
+            <div id="slide-header" class="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-800 pb-3">
+                <span class="text-xs font-mono font-bold tracking-widest text-interceptRed uppercase">UPSKILL YOUR SKILLS</span>
+                <span class="text-xs font-mono bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded text-gray-600 dark:text-gray-300" id="slide-counter">SLIDE 1 OF 13</span>
+            </div>
+
+            <!-- Moldura Dinâmica de Conteúdo -->
+            <div class="flex-grow flex flex-col justify-center items-center py-4" id="slide-content-frame">
+                <!-- Gráficos e Textos Dinâmicos Injetados Aqui -->
+            </div>
+
+            <!-- Controlos de Navegação dos Slides -->
+            <div id="slide-controls" class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
+                <button id="prev-btn" onclick="prevSlide()" class="px-4 py-2 text-xs font-mono font-bold rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-700 dark:text-gray-300 disabled:opacity-20 disabled:pointer-events-none">
+                    &larr;
+                </button>
+                
+                <!-- Indicadores Circulares -->
+                <div class="flex space-x-1.5" id="navigation-dots">
+                    <!-- Gerados Dinamicamente via JS -->
+                </div>
+
+                <button id="next-btn" onclick="nextSlide()" class="px-4 py-2 text-xs font-mono font-bold rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-sm disabled:opacity-20 disabled:pointer-events-none">
+                    &rarr;
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Gaveta de Notas do Orador Horizontal (Retrátil) -->
+    <section id="speaker-drawer" class="w-full bg-gray-900 border-t border-gray-800 text-gray-100 transition-all duration-300 relative z-40">
+        <div class="bg-gray-950 px-6 py-2.5 flex items-center justify-between cursor-pointer border-b border-gray-800" onclick="toggleSpeakerDrawer()">
+            <div class="flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                <span class="text-xs font-mono font-bold tracking-widest text-gray-400 uppercase">SPEAKER NOTES</span>
+            </div>
+            <div class="flex items-center space-x-4 font-mono text-xs text-gray-400">
+                <!-- Controlo de tamanho de fonte -->
+                <div class="flex items-center space-x-1.5 bg-gray-800 rounded p-0.5" onclick="event.stopPropagation()">
+                    <button onclick="changeFontSize(-2)" class="px-2 py-0.5 text-xs font-bold hover:bg-gray-700 rounded transition-all">-</button>
+                    <span class="text-[10px] font-mono text-gray-300 px-1" id="font-size-label">15px</span>
+                    <button onclick="changeFontSize(2)" class="px-2 py-0.5 text-xs font-bold hover:bg-gray-700 rounded transition-all">+</button>
+                </div>
+                <!-- Seta indicadora de estado -->
+                <span id="drawer-arrow" class="text-xs transition-transform duration-300 transform rotate-0">&#9660;</span>
+            </div>
+        </div>
+
+        <!-- Conteúdo do Script do Orador -->
+        <div id="speaker-drawer-content" class="px-6 py-4 overflow-y-auto max-h-40 font-serif italic text-gray-300 leading-relaxed text-sm md:text-base">
+            <!-- Texto Injetado de Modo Dinâmico -->
+        </div>
+    </section>
+
+    <!-- Toast de Notificações Rápidas -->
+    <div id="toast-notification" class="fixed bottom-6 left-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-gray-800 text-xs font-mono translate-y-24 opacity-0 transition-all duration-300 pointer-events-none flex items-center space-x-3">
+        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+        <span id="toast-message">Copiado para a área de transferência!</span>
+    </div>
+
+    <!-- Lógica de Apresentação e Base de Dados de Conteúdo -->
+    <script>
+        // Base de Dados dos Slides e Notas (Em Português de Portugal para a interface e inglês para a palestra)
+        const PRESENTATION_SLIDES = [
+            {
+                title: "Upskill your Skills",
+                subtitle: "Advanced Design Patterns for Agentic Architecture",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in flex flex-col items-center">
+                        <div class="relative w-44 h-44 mb-6 flex items-center justify-center">
+                            <!-- SVG: Magic Wand transforming to blueprint grid -->
+                            <svg class="w-full h-full text-rose-500" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="gradient-shift" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stop-color="#E11D48"/>
+                                        <stop offset="100%" stop-color="#3B82F6"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M10 20 H90 M10 40 H90 M10 60 H90 M10 80 H90 M20 10 V90 M40 10 V90 M60 10 V90 M80 10 V90" stroke="currentColor" stroke-opacity="0.1" stroke-width="1" class="dark:text-white text-black" />
+                                <circle cx="50" cy="50" r="35" stroke="url(#gradient-shift)" stroke-width="1.5" stroke-dasharray="4 8" class="animate-spin" style="animation-duration: 15s;" />
+                                <circle cx="50" cy="50" r="22" stroke="url(#gradient-shift)" stroke-width="2" stroke-dasharray="10 4" class="animate-spin" style="animation-duration: 8s; animation-direction: reverse;" />
+                                <rect x="42" y="15" width="16" height="70" rx="8" stroke="url(#gradient-shift)" stroke-width="3" fill="none" />
+                                <circle cx="50" cy="23" r="4" fill="#3B82F6" class="animate-ping" />
+                            </svg>
+                        </div>
+                        <h2 class="text-3xl md:text-4xl font-serif font-black tracking-tight leading-tight text-gray-900 dark:text-white mb-2">Upskill your Skills</h2>
+                        <p class="text-xs font-mono text-gray-500 uppercase tracking-widest mb-4">Advanced Design Patterns for Agentic Architecture</p>
+                        
+                        <!-- Conteúdo de Alta Densidade nos Slides -->
+                        <div class="mt-2 space-y-2.5 max-w-md text-left bg-gray-50 dark:bg-gray-800/80 p-5 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <div class="flex items-start gap-3 text-xs md:text-sm font-mono text-gray-600 dark:text-gray-300">
+                                <span class="text-rose-500 text-lg">⚡</span>
+                                <span>No more fuzzy, pleading prompts. We are treating LLMs as strict orchestrators.</span>
+                            </div>
+                            <div class="flex items-start gap-3 text-xs md:text-sm font-mono text-gray-600 dark:text-gray-300">
+                                <span class="text-blue-500 text-lg">🛡️</span>
+                                <span>Build deterministic pipelines running precise procedural environments.</span>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                script: "Welcome everyone. For the last few years, building LLM tools felt a bit like casting spells—we wrote long, pleading prompts and hoped the 'magic black box' did the right thing. Today, we are moving past vibes. We are looking at the bleeding edge of agentic engineering, where frontier models act as strict compilers running procedural code. Today, I'm going to share 10 advanced patterns to upskill your SKILL.md ecosystems."
+            },
+            {
+                title: "Agenda: The 10 Advanced Patterns",
+                visual: `
+                    <div class="w-full max-w-4xl animate-fade-in text-left">
+                        <h2 class="text-2xl md:text-3xl font-serif font-black text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                            <span class="text-rose-500">☰</span> Presentation Agenda
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 font-mono text-xs md:text-sm text-gray-600 dark:text-gray-300">
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">1</span>
+                                <span>Offload Determinism to Scripts</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">2</span>
+                                <span>Shape Matches Complexity (Table)</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">3</span>
+                                <span>Stop-and-Confirm Gates</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">4</span>
+                                <span>Progressive Context Loading</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">5</span>
+                                <span>Semantic Routing & Triage</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">6</span>
+                                <span>Decoupled Plan-and-Execute</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">7</span>
+                                <span>Context Checkpointing & State</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">8</span>
+                                <span>Generator-Evaluator Loops</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">9</span>
+                                <span>Self-Healing Repair Validators</span>
+                            </div>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-4">
+                                <span class="bg-rose-500 text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold">10</span>
+                                <span>TS Source of Truth Templates</span>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                script: "Before we dive in, let's look at our map for today. We will cover ten advanced architectural patterns divided into three structural areas: engineering determinism, protecting the model's scarce context window, and automating your Alignment validation loops. Let's start with our first Pattern: Offloading Determinism."
+            },
+            {
+                title: "#1: Offload Determinism",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in">
+                        <div class="w-full flex justify-center mb-4">
+                            <!-- SVG: High quality console & split processing icon -->
+                            <svg class="w-28 h-28 text-blue-500" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="5" y="15" width="42" height="70" rx="6" stroke="currentColor" stroke-width="2.5" class="text-blue-500" />
+                                <rect x="53" y="15" width="42" height="70" rx="6" stroke="currentColor" stroke-width="2.5" class="text-purple-500" />
+                                <path d="M12 25 L18 30 L12 35 M22 35 H30" stroke="currentColor" stroke-width="2" class="text-blue-400" />
+                                <path d="M15 50 H37 M15 62 H37" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2" class="text-gray-400" />
+                                <!-- Splitting Arrow -->
+                                <path d="M47 50 H53" stroke="currentColor" stroke-width="3" stroke-linecap="round" class="text-amber-500 animate-pulse" />
+                                <!-- Core Processing Circle inside target model -->
+                                <circle cx="74" cy="50" r="12" stroke="currentColor" stroke-width="2" class="text-purple-400 animate-spin" stroke-dasharray="8 4" />
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-serif font-black text-gray-900 dark:text-white mb-3">#1: Offload Determinism</h2>
+                        
+                        <!-- Conteúdo Adicional para Densidade -->
+                        <div class="p-4 mb-4 bg-blue-500/10 border-l-4 border-blue-500 rounded-r text-left font-mono text-xs md:text-sm text-gray-700 dark:text-gray-300">
+                            <strong>Core Strategy:</strong> Don't pay expensive tokens for tasks easily resolved with simple compilers or execution scripts.
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+                            <div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 font-mono text-xs">
+                                <span class="text-blue-500 block font-bold mb-1">SCRIPTS</span>
+                                Handle extraction, formatting and counting.
+                            </div>
+                            <div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 font-mono text-xs">
+                                <span class="text-purple-500 block font-bold mb-1">LLM MODEL</span>
+                                Reserve context for implicit inference only.
+                            </div>
+                            <div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 font-mono text-xs">
+                                <span class="text-emerald-500 block font-bold mb-1">ORCHESTRATOR</span>
+                                Treat your scripts as the system standard library.
+                            </div>
+                        </div>
+                    </div>
+                `,
+                script: "Our first pattern is the core philosophy of modern skills: division of labor. Historically, developers wasted tokens and accuracy trying to force LLMs to count lines or strict-format JSON. Don't do this. Push all deterministic work into bundled Python or Node scripts. Reserve the expensive LLM context window exclusively for tasks that require implicit human-like judgment. Treat the model as the orchestrator, and your scripts as its standard library."
+            },
+            {
+                title: "#2: Match Shape to Complexity",
+                visual: `
+                    <div class="text-center w-full max-w-2xl animate-fade-in">
+                        <div class="w-full flex justify-center mb-4">
+                            <!-- SVG: Representing Runbook, Procedural and Orchestrator systems -->
+                            <svg class="w-64 h-16" viewBox="0 0 300 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Runbook Icon (Book) -->
+                                <rect x="20" y="15" width="40" height="50" rx="4" stroke="#3B82F6" stroke-width="2" />
+                                <line x1="30" y1="30" x2="50" y2="30" stroke="#3B82F6" stroke-width="2" />
+                                <line x1="30" y1="42" x2="50" y2="42" stroke="#3B82F6" stroke-width="2" />
+                                
+                                <!-- Connection lines -->
+                                <line x1="75" y1="40" x2="105" y2="40" stroke="#6B7280" stroke-width="1.5" stroke-dasharray="4 4" />
+
+                                <!-- Procedural (Stairs/Sequence) -->
+                                <rect x="120" y="15" width="40" height="50" rx="4" stroke="#10B981" stroke-width="2" />
+                                <circle cx="130" cy="30" r="3" fill="#10B981" />
+                                <circle cx="130" cy="42" r="3" fill="#10B981" />
+                                <circle cx="130" cy="54" r="3" fill="#10B981" />
+                                <line x1="138" y1="30" x2="152" y2="30" stroke="#10B981" stroke-width="1.5" />
+                                <line x1="138" y1="42" x2="152" y2="42" stroke="#10B981" stroke-width="1.5" />
+                                <line x1="138" y1="54" x2="152" y2="54" stroke="#10B981" stroke-width="1.5" />
+
+                                <line x1="175" y1="40" x2="205" y2="40" stroke="#6B7280" stroke-width="1.5" stroke-dasharray="4 4" />
+
+                                <!-- Orchestrator (Hub-and-spoke star network) -->
+                                <rect x="220" y="15" width="40" height="50" rx="4" stroke="#F59E0B" stroke-width="2" />
+                                <circle cx="240" cy="40" r="4" fill="#F59E0B" />
+                                <circle cx="232" cy="27" r="3" fill="#F59E0B" />
+                                <circle cx="248" cy="27" r="3" fill="#F59E0B" />
+                                <circle cx="232" cy="53" r="3" fill="#F59E0B" />
+                                <circle cx="248" cy="53" r="3" fill="#F59E0B" />
+                                <line x1="240" y1="40" x2="232" y2="27" stroke="#F59E0B" stroke-width="1" />
+                                <line x1="240" y1="40" x2="248" y2="27" stroke="#F59E0B" stroke-width="1" />
+                                <line x1="240" y1="40" x2="232" y2="53" stroke="#F59E0B" stroke-width="1" />
+                                <line x1="240" y1="40" x2="248" y2="53" stroke="#F59E0B" stroke-width="1" />
+                            </svg>
+                        </div>
+                        <h2 class="text-xl md:text-2xl font-serif font-black text-journalBlack dark:text-white mb-4">#2: Match Shape to Complexity</h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs md:text-sm font-mono border-collapse">
+                                <thead>
+                                    <tr class="border-b border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                                        <th class="p-3 font-black rounded-l-lg">Architecture</th>
+                                        <th class="p-3 font-black">Layout Model</th>
+                                        <th class="p-3 font-black rounded-r-lg">Optimal Use Case</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+                                    <tr>
+                                        <td class="p-3 font-bold text-blue-500">Runbook</td>
+                                        <td class="p-3 text-gray-600 dark:text-gray-400">Passive reference documentation</td>
+                                        <td class="p-3 text-gray-500">Quick parameters lookup</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-3 font-bold text-emerald-500">Procedural</td>
+                                        <td class="p-3 text-gray-600 dark:text-gray-400">Strict numbered workflows</td>
+                                        <td class="p-3 text-gray-500">Guided human/AI loops</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-3 font-bold text-amber-500">Orchestrator</td>
+                                        <td class="p-3 text-gray-600 dark:text-gray-400">Modular subagent dispatch</td>
+                                        <td class="p-3 text-gray-500">Autonomous pipelines</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Densidade Aumentada -->
+                        <div class="mt-4 p-3.5 bg-gray-100 dark:bg-gray-800 rounded-xl text-xs md:text-sm font-mono text-left text-gray-600 dark:text-gray-300">
+                            <strong>Golden Rule:</strong> Match instruction density with task complexity. Don't force an orchestrator outline on a basic parameter lookup.
+                        </div>
+                    </div>
+                `,
+                script: "There is no 'one size fits all' for a skill file. We see three distinct architectures emerging. If you're building a fact-lookup tool, use the 'Runbook' style with rich headers. If you're building a guided task, use strict 'Procedural' numbered lists. But if you're building a heavy analysis pipeline, you want the 'Orchestrator' style—minimal prose, heavily reliant on dispatching subagents and executing bundled logic."
+            },
+            {
+                title: "#3: Stop-and-Confirm Gates",
+                visual: `
+                    <div class="text-center w-full max-w-lg animate-fade-in">
+                        <div class="w-full flex justify-center mb-4">
+                            <!-- SVG: Recognition Barrier Gate icon -->
+                            <svg class="w-28 h-28 text-rose-500" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="50" cy="50" r="38" stroke="currentColor" stroke-width="2" stroke-dasharray="6 4" class="opacity-30" />
+                                <!-- Diagonal Stripe Gate Barrier -->
+                                <rect x="15" y="45" width="70" height="10" rx="3" fill="#E11D48" />
+                                <rect x="25" y="45" width="10" height="10" fill="#F59E0B" />
+                                <rect x="45" y="45" width="10" height="10" fill="#F59E0B" />
+                                <rect x="65" y="45" width="10" height="10" fill="#F59E0B" />
+                                <!-- Stand -->
+                                <rect x="44" y="55" width="12" height="30" fill="currentColor" class="text-gray-400" />
+                                <!-- Stop text inside a shield -->
+                                <circle cx="50" cy="25" r="10" fill="#E11D48" />
+                                <path d="M47 22 H53 M47 25 H53 M47 28 H53" stroke="white" stroke-width="1.5" />
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-serif font-black text-gray-900 dark:text-white mb-2">#3: Stop-and-Confirm Gates</h2>
+                        
+                        <div class="bg-rose-500/10 border-2 border-rose-500 text-rose-600 dark:text-rose-400 p-4 rounded-xl font-mono text-xs md:text-sm font-bold shadow-md mb-4">
+                            IMPORTANT: Do NOT proceed without calling <span class="bg-rose-500 text-white dark:text-gray-900 px-1.5 py-0.5 rounded font-bold">AskUserQuestion</span>
+                        </div>
+
+                        <!-- Densidade Aumentada -->
+                        <div class="text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-xl text-xs md:text-sm font-mono text-gray-500 dark:text-gray-300">
+                            <strong>Hard Guardrails:</strong> Forces the model to stop and seek human permission before high-risk operations (e.g. database schema migrations, automated wire dispatches).
+                        </div>
+                    </div>
+                `,
+                script: "When building procedural workflows, you must prevent the agent on running off a cliff. The Stop-and-Confirm pattern enforces hard pauses before ambiguous or destructive actions—like committing code or dropping a table. By hardcoding these gates in bold, uppercase constraints tied to specific tools, you keep the human firmly in the loop where it matters most."
+            },
+            {
+                title: "#4: Progressive Context Loading",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in">
+                        <div class="w-full flex justify-center mb-4">
+                            <!-- SVG: Recognizable folders hierarchy loading exactly one file -->
+                            <svg class="w-32 h-24 text-emerald-500" viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="10" y="20" width="50" height="40" rx="4" stroke="currentColor" stroke-width="2" class="opacity-40" />
+                                <rect x="75" y="20" width="50" height="40" rx="4" stroke="currentColor" stroke-width="2" class="opacity-40" />
+                                <!-- Active loaded context file with detailed lines -->
+                                <rect x="140" y="20" width="50" height="50" rx="4" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.1" />
+                                <line x1="148" y1="32" x2="182" y2="32" stroke="currentColor" stroke-width="2" />
+                                <line x1="148" y1="44" x2="182" y2="44" stroke="currentColor" stroke-width="2" />
+                                <line x1="148" y1="56" x2="168" y2="56" stroke="currentColor" stroke-width="2" />
+                                <path d="M35 75 H165" stroke="currentColor" stroke-width="2" class="opacity-25" />
+                            </svg>
+                        </div>
+                        <h2 class="text-xl md:text-2xl font-serif font-black text-gray-900 dark:text-white mb-3">#4: Progressive Context Loading</h2>
+                        
+                        <!-- Densidade Aumentada -->
+                        <div class="text-left bg-emerald-500/10 border-l-4 border-emerald-500 p-4 rounded-r text-xs md:text-sm font-mono text-gray-600 dark:text-gray-300 mb-3">
+                            <strong>Ruthless Frugality:</strong> Starve the active model's memory buffer. Read files selectively only after confirming locale and relevance rules.
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left font-mono text-xs">
+                            <div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+                                <span class="text-emerald-500 font-bold block mb-1">✓ Frugal Loading</span> Only load framework constraints when explicitly triggered.
+                            </div>
+                            <div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+                                <span class="text-emerald-500 font-bold block mb-1">✓ Index Querying</span> Grep index coordinates first to locate precise lines.
+                            </div>
+                        </div>
+                    </div>
+                `,
+                script: "Context window bloat is the number one killer of instruction adherence. Progressive Disclosure means being ruthlessly frugal with what you feed the agent. Don't dump a whole codebase into the context. Instruct the skill to grep a JSON graph first, find the exact node, and only load that specific file. Load translation instructions only if a non-English language is detected. Pay for context only when it is strictly relevant."
+            },
+            {
+                title: "#5: Semantic Routing",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in">
+                        <div class="w-full flex justify-center mb-4">
+                            <!-- SVG: Recognizable Dispatcher Routing Icon -->
+                            <svg class="w-48 h-24 text-blue-500" viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="30" cy="50" r="12" fill="#E11D48" />
+                                <line x1="42" y1="50" x2="90" y2="50" stroke="currentColor" stroke-width="2.5" />
+                                <!-- Diamond Triage Router -->
+                                <polygon points="105,35 125,50 105,65 85,50" fill="#3B82F6" />
+                                <!-- Outward channels -->
+                                <line x1="125" y1="50" x2="160" y2="25" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2" />
+                                <line x1="125" y1="50" x2="160" y2="50" stroke="#10B981" stroke-width="3" />
+                                <line x1="125" y1="50" x2="160" y2="75" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2" />
+                                <circle cx="165" cy="25" r="5" fill="#9CA3AF" />
+                                <circle cx="165" cy="50" r="8" fill="#10B981" />
+                                <circle cx="165" cy="75" r="5" fill="#9CA3AF" />
+                            </svg>
+                        </div>
+                        <h2 class="text-xl md:text-2xl font-serif font-black text-gray-900 dark:text-white mb-2">#5: Semantic Routing</h2>
+                        
+                        <!-- Densidade Aumentada -->
+                        <div class="text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-xl text-xs md:text-sm font-mono text-gray-500 dark:text-gray-300">
+                            <strong>Micro-Triage Gate:</strong> Evaluate inputs against brief skill signatures at the front door. Loads exactly one relevant skill file. Reduces hallucinations and speeds up execution.
+                        </div>
+                    </div>
+                `,
+                script: "Instead of loading 50 different skills into an agent's brain and asking it to choose, put a micro-decision layer at the front door. Use a fast, cheap model—or even vector search—to evaluate the user's intent against just the descriptions of your skills. Once it routes the request, you load only that single SKILL.md file. It saves money, reduces hallucinations, and vastly speeds up time-to-first-token."
+            },
+            {
+                title: "#6: Plan-and-Execute",
+                visual: `
+                    <div class="text-center w-full max-w-lg animate-fade-in">
+                        <div class="relative bg-gray-950 text-emerald-400 p-5 rounded-2xl border border-gray-800 text-left font-mono text-xs shadow-2xl mb-4">
+                            <span class="text-gray-500 block mb-2">// Plan Generation Phase (Decoupled Thinking)</span>
+                            <div class="space-y-1 text-xs md:text-sm">
+                                <div>[PLAN_START]</div>
+                                <div>1. Analyze structural codebase graph modules.</div>
+                                <div>2. Run offline validation environment compilers.</div>
+                                <div>3. Apply target repair patch.</div>
+                            </div>
+                        </div>
+                        <h2 class="text-xl font-serif font-black text-gray-900 dark:text-white mb-2">#6: Plan-and-Execute</h2>
+                        
+                        <!-- Densidade Aumentada -->
+                        <div class="text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-xl text-xs md:text-sm font-mono text-gray-500 dark:text-gray-300">
+                            <strong>Dynamic Prevention:</strong> Forcing agents to create static step roadmaps first completely prevents recursive loops and deadlocks during final execution phases.
+                        </div>
+                    </div>
+                `,
+                script: "Allowing an agent to dynamically reason its way through a loop step-by-step often ends in infinite loops. Enter 'Plan-and-Execute'. Phase one forces the model to generate a strict, numbered plan without taking any action. Phase two is a simpler execution loop that blindly follows that plan one step at a time. Writing the plan down creates a forward context that keeps the model's attention firmly anchored."
+            },
+            {
+                title: "#7: Context Checkpointing",
+                visual: `
+                    <div class="text-center w-full max-w-lg animate-fade-in">
+                        <div class="w-full flex justify-center mb-4">
+                            <!-- SVG: Checkpointing and timeline save state -->
+                            <svg class="w-64 h-16 text-amber-500" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="10" y="15" width="40" height="50" rx="4" stroke="currentColor" stroke-width="2.5" />
+                                <line x1="50" y1="40" x2="90" y2="40" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4" />
+                                <!-- Saved checkpoint flag -->
+                                <circle cx="100" cy="40" r="12" fill="#F59E0B" />
+                                <path d="M96 35 L106 40 L96 45" fill="white" />
+                                <line x1="112" y1="40" x2="150" y2="40" stroke="currentColor" stroke-width="2.5" />
+                                <rect x="150" y="15" width="40" height="50" rx="4" stroke="#10B981" stroke-width="2.5" />
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-serif font-black text-gray-900 dark:text-white mb-2">#7: Context Checkpointing</h2>
+                        
+                        <!-- Densidade Aumentada -->
+                        <div class="text-left bg-amber-500/10 border-l-4 border-amber-500 p-4 rounded-r text-xs md:text-sm font-mono text-gray-600 dark:text-gray-300 mb-3">
+                            <strong>Memory Offloading:</strong> Commit active task state structures to external storage. Completely flush conversation context periodically and resume execution using the save file.
+                        </div>
+
+                        <div class="inline-block bg-gray-900 text-gray-300 px-4 py-2 rounded-xl font-mono text-xs shadow-inner">
+                            <span class="text-rose-400">active state</span> &rarr; <span class="text-emerald-400">checkpoint.json</span> &rarr; <span class="text-blue-400">Flush context buffer</span>
+                        </div>
+                    </div>
+                `,
+                script: "How do you run a multi-hour agent task without the model forgetting its instructions? You offload its state. After a major phase completes, the skill instructs the agent to write a summary of its progress to disk. Then, the underlying system flushes the entire conversation transcript, reloading just the system instructions and the fresh checkpoint file. This makes infinite-horizon tasks possible."
+            },
+            {
+                title: "#8: Generator-Evaluator Loops",
+                visual: `
+                    <div class="text-center w-full max-w-lg animate-fade-in">
+                        <div class="w-full flex justify-center mb-4">
+                            <!-- SVG: Loop gears with magnifying glass evaluation icon -->
+                            <svg class="w-40 h-24 text-emerald-500" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="50" cy="50" r="28" stroke="#3B82F6" stroke-width="2.5" stroke-dasharray="10 4" class="animate-spin" style="animation-duration: 20s;" />
+                                <circle cx="110" cy="50" r="28" stroke="#10B981" stroke-width="2.5" stroke-dasharray="10 4" class="animate-spin" style="animation-duration: 20s; animation-direction: reverse;" />
+                                <!-- Magnifying glass overlaying the loop -->
+                                <circle cx="80" cy="50" r="10" stroke="#F59E0B" stroke-width="3" fill="none" />
+                                <line x1="87" y1="57" x2="98" y2="68" stroke="#F59E0B" stroke-width="3" />
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-serif font-black text-gray-900 dark:text-white mb-2">#8: Generator-Evaluator Loops</h2>
+                        
+                        <!-- Densidade Aumentada -->
+                        <div class="text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-xl text-xs md:text-sm font-mono text-gray-500 dark:text-gray-300">
+                            <strong>Double-Blind Assessment:</strong> LLMs excel as rigorous reviewers. Separate the task generator skill from the validator model. Re-run loops dynamically until code satisfies safety guidelines.
+                        </div>
+                    </div>
+                `,
+                script: "Models are notoriously bad at catching their own mistakes on the first pass, but they are excellent critics. Pair a 'Generator' skill with an 'Evaluator' skill. The Generator writes the code or artifact; the Evaluator inspects it against a strict rubric. If it fails, the Evaluator kicks it back with specific errors. It's essentially Test-Driven Development for agents."
+            },
+            {
+                title: "#9: Self-Healing Validators",
+                visual: `
+                    <div class="text-center w-full max-w-md animate-fade-in">
+                        <div class="relative bg-gray-950 text-emerald-400 p-5 rounded-2xl border border-gray-800 text-left font-mono text-xs shadow-2xl mb-4">
+                            <span class="text-red-500 block font-bold mb-1">✖ build failed (exit code 1)</span>
+                            <span class="text-gray-400 font-bold block mb-1">Parsing stderr logs...</span>
+                            <span class="text-emerald-400 block font-bold">✓ Applied self-repair patch. Retrying compiler exactly ONCE.</span>
+                        </div>
+                        <h2 class="text-xl font-serif font-black text-gray-900 dark:text-white mb-2">#9: Self-Healing Validators</h2>
+                        
+                        <!-- Densidade Aumentada -->
+                        <div class="text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-xl text-xs md:text-sm font-mono text-gray-500 dark:text-gray-300">
+                            <strong>Bounded Error Recovery:</strong> Provide explicit fallback instructions inside skill orchestrators. Allow bounded repair paths without entering infinite terminal error spirals.
+                        </div>
+                    </div>
+                `,
+                script: "Errors will happen, but they shouldn't crash the pipeline. Build error-tolerance directly into your orchestrator skills. Give the model explicit permission to fail gracefully. Tell it: 'If the script exits non-zero, read stderr, fix the command, and retry exactly ONCE.' This gives the system a bounded self-repair loop without falling into an endless death spiral."
+            },
+            {
+                title: "#10: The TS Source of Truth",
+                visual: `
+                    <div class="text-center w-full max-w-lg animate-fade-in">
+                        <div class="grid grid-cols-2 gap-4 text-left font-mono text-xs mb-4">
+                            <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                                <span class="text-rose-500 font-bold block mb-2">THE SCAFFOLDER</span>
+                                <p class="text-gray-500 leading-relaxed">Cookie cutter templates. High risk of instruction drifting.</p>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-emerald-500/30">
+                                <span class="text-emerald-500 font-bold block mb-2">THE TS COMPILER</span>
+                                <p class="text-gray-500 leading-relaxed">TS schemas compile instantly into UI and Markdown specs simultaneously.</p>
+                            </div>
+                        </div>
+                        <h2 class="text-xl font-serif font-black text-gray-900 dark:text-white mb-2">#10: The TS Source of Truth</h2>
+                        
+                        <!-- Densidade Aumentada -->
+                        <div class="text-left bg-emerald-500/10 border-l-4 border-emerald-500 p-4 rounded-r text-xs md:text-sm font-mono text-gray-600 dark:text-gray-300">
+                            <strong>No More Manual Outlines:</strong> Compile disposable SKILL.md specs automatically. Prevent instruction layout drifting at build time.
+                        </div>
+                    </div>
+                `,
+                script: "Finally, how do we stop the application UI and the SKILL.md file from drifting apart? Do not write Markdown files by hand, and do not rely on one-time scaffolders like init_skill.py. Instead, write your skills as strictly typed TypeScript templates. The build step compiles this single source of truth into both the UI slash-command and the Agent's Markdown instructions. The .md file becomes a disposable build artifact. Drift becomes impossible."
+            },
+            {
+                title: "Treat Prompts Like Code",
+                visual: `
+                    <div class="text-center w-full max-w-xl animate-fade-in flex flex-col items-center">
+                        <div class="relative w-28 h-28 mb-4">
+                            <!-- SVG: High quality final reward/shield trophy -->
+                            <svg class="w-full h-full text-rose-500 animate-pulse" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <polygon points="50,10 90,85 10,85" stroke="currentColor" stroke-width="3" fill="none" />
+                                <circle cx="50" cy="53" r="16" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4" />
+                                <path d="M42 53 L48 59 L58 47" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl md:text-3xl font-serif font-black text-gray-900 dark:text-white mb-3">Treat Prompts Like Code</h2>
+                        
+                        <!-- Densidade Aumentada -->
+                        <div class="text-left bg-gray-100 dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs md:text-sm font-mono mb-5 text-gray-600 dark:text-gray-300 max-w-md">
+                            <strong>Summary Guidelines:</strong> Outsource layout determinism to CLI scripts, cache active context aggressively, and build closed-loop evaluators.
+                        </div>
+
+                        <div class="flex flex-wrap justify-center gap-2">
+                            <span class="bg-rose-500/10 text-rose-500 font-mono text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">01. Engineer for determinism</span>
+                            <span class="bg-blue-500/10 text-blue-500 font-mono text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">02. Context frugality</span>
+                            <span class="bg-emerald-500/10 text-emerald-500 font-mono text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">03. Automated Alignment</span>
+                        </div>
+                        <p class="text-sm font-serif italic text-gray-400 mt-6 font-bold">Q&A - Thank you!</p>
+                    </div>
+                `,
+                script: "To sum up: we are no longer 'prompt hacking.' We are engineering software. By moving logic to scripts, routing context intelligently, building in evaluation loops, and compiling our instructions from a single source of truth, we build agentic systems that are robust, scalable, and predictable. Thank you for your time. I'd love to open the floor for any questions."
+            }
+        ];
+
+        // Estado da Apresentação
+        let currentSlideIndex = 0;
+        let presenterFontSize = 15; // Tamanho de fonte padrão
+        let isSpeakerNotesCollapsed = false;
+        let isFullscreenMode = false;
+
+        // Estado dos gestos em dispositivos móveis
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        window.onload = function() {
+            renderSlide();
+            setupKeyboardNavigation();
+            setupTouchGestures();
+        };
+
+        // Renderiza o slide atual
+        function renderSlide() {
+            const slide = PRESENTATION_SLIDES[currentSlideIndex];
+            const slideCounter = document.getElementById('slide-counter');
+            const slideContentFrame = document.getElementById('slide-content-frame');
+            const speakerScriptContainer = document.getElementById('speaker-drawer-content');
+            const progressBar = document.getElementById('slide-progress');
+
+            // Atualiza metadados do slide
+            slideCounter.textContent = `SLIDE ${currentSlideIndex + 1} DE ${PRESENTATION_SLIDES.length}`;
+            
+            // Injeta gráficos e textos do slide
+            slideContentFrame.innerHTML = slide.visual;
+
+            // Injeta notas do orador
+            speakerScriptContainer.textContent = slide.script;
+
+            // Atualiza barra de progresso
+            const progressPercent = ((currentSlideIndex + 1) / PRESENTATION_SLIDES.length) * 100;
+            progressBar.style.width = `${progressPercent}%`;
+
+            // Ativa/desativa botões de navegação conforme limite
+            document.getElementById('prev-btn').disabled = (currentSlideIndex === 0);
+            document.getElementById('next-btn').disabled = (currentSlideIndex === PRESENTATION_SLIDES.length - 1);
+
+            // Redesenha os indicadores circulares
+            drawDots();
+        }
+
+        // Navegar para slide seguinte
+        function nextSlide() {
+            if (currentSlideIndex < PRESENTATION_SLIDES.length - 1) {
+                currentSlideIndex++;
+                renderSlide();
+            }
+        }
+
+        // Navegar para slide anterior
+        function prevSlide() {
+            if (currentSlideIndex > 0) {
+                currentSlideIndex--;
+                renderSlide();
+            }
+        }
+
+        // Saltos rápidos para um slide específico
+        function jumpToSlide(index) {
+            currentSlideIndex = index;
+            renderSlide();
+        }
+
+        // Desenha indicadores de navegação circulares
+        function drawDots() {
+            const dotsContainer = document.getElementById('navigation-dots');
+            dotsContainer.innerHTML = '';
+            
+            PRESENTATION_SLIDES.forEach((_, index) => {
+                const dot = document.createElement('button');
+                dot.onclick = () => jumpToSlide(index);
+                dot.className = `w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === currentSlideIndex 
+                        ? 'bg-rose-600 scale-125' 
+                        : 'bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-500'
+                }`;
+                dot.title = `Ir para o slide ${index + 1}`;
+                dotsContainer.appendChild(dot);
+            });
+        }
+
+        // Minimizar ou expandir notas do orador
+        function toggleSpeakerDrawer() {
+            const drawerContent = document.getElementById('speaker-drawer-content');
+            const arrow = document.getElementById('drawer-arrow');
+
+            if (isSpeakerNotesCollapsed) {
+                drawerContent.classList.remove('hidden');
+                arrow.classList.remove('rotate-180');
+                isSpeakerNotesCollapsed = false;
+            } else {
+                drawerContent.classList.add('hidden');
+                arrow.classList.add('rotate-180');
+                isSpeakerNotesCollapsed = true;
+            }
+        }
+
+        // Controlo de tamanho de fonte das notas
+        function changeFontSize(delta) {
+            presenterFontSize = Math.max(11, Math.min(26, presenterFontSize + delta));
+            const fontLabel = document.getElementById('font-size-label');
+            const scriptContainer = document.getElementById('speaker-drawer-content');
+
+            fontLabel.textContent = `${presenterFontSize}px`;
+            scriptContainer.style.fontSize = `${presenterFontSize}px`;
+        }
+
+        // Alternar tema global
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+            } else {
+                html.classList.add('dark');
+            }
+        }
+
+        // Entrar no modo Ecrã Inteiro (Fullscreen)
+        function enterFullscreenMode() {
+            isFullscreenMode = true;
+            document.getElementById('progress-container').classList.add('hidden');
+            document.getElementById('speaker-drawer').classList.add('hidden');
+            document.getElementById('slide-header').classList.add('hidden');
+            document.getElementById('slide-controls').classList.add('hidden');
+            document.getElementById('theme-toggle-container').classList.add('hidden');
+            document.getElementById('exit-fullscreen-btn').classList.remove('hidden');
+
+            // Escala de exibição máxima do viewport
+            const slideViewport = document.getElementById('slide-viewport');
+            slideViewport.classList.add('fullscreen-active');
+            slideViewport.classList.remove('md:max-w-5xl', 'lg:max-w-6xl', 'min-h-[500px]', 'md:min-h-[620px]', 'lg:min-h-[680px]');
+            slideViewport.classList.add('w-screen', 'h-screen', 'border-0', 'rounded-none', 'p-12', 'md:p-20', 'lg:p-28');
+            
+            showToast("Ecrã inteiro ativado. Pressione ESC ou F para sair.");
+        }
+
+        // Sair do modo Ecrã Inteiro
+        function exitFullscreenMode() {
+            isFullscreenMode = false;
+            document.getElementById('progress-container').classList.remove('hidden');
+            document.getElementById('speaker-drawer').classList.remove('hidden');
+            document.getElementById('slide-header').classList.remove('hidden');
+            document.getElementById('slide-controls').classList.remove('hidden');
+            document.getElementById('theme-toggle-container').classList.remove('hidden');
+            document.getElementById('exit-fullscreen-btn').classList.add('hidden');
+
+            const slideViewport = document.getElementById('slide-viewport');
+            slideViewport.classList.remove('fullscreen-active');
+            slideViewport.classList.remove('w-screen', 'h-screen', 'border-0', 'rounded-none', 'p-12', 'md:p-20', 'lg:p-28');
+            slideViewport.classList.add('md:max-w-5xl', 'lg:max-w-6xl', 'min-h-[500px]', 'md:min-h-[620px]', 'lg:min-h-[680px]');
+        }
+
+        // Configuração de navegação e atalhos por teclado
+        function setupKeyboardNavigation() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight' || e.key === 'Space') {
+                    e.preventDefault();
+                    nextSlide();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    prevSlide();
+                } else if (e.key === 'Escape' && isFullscreenMode) {
+                    e.preventDefault();
+                    exitFullscreenMode();
+                } else if (e.key === 'f' || e.key === 'F') {
+                    e.preventDefault();
+                    if (isFullscreenMode) {
+                        exitFullscreenMode();
+                    } else {
+                        enterFullscreenMode();
+                    }
+                }
+            });
+        }
+
+        // Configuração de gestos de deslize para dispositivos móveis
+        function setupTouchGestures() {
+            const slideViewport = document.getElementById('slide-viewport');
+
+            slideViewport.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            slideViewport.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipeGesture();
+            }, { passive: true });
+        }
+
+        function handleSwipeGesture() {
+            const minSwipeDistance = 50;
+            const diffX = touchStartX - touchEndX;
+
+            if (Math.abs(diffX) > minSwipeDistance) {
+                if (diffX > 0) {
+                    nextSlide();
+                } else {
+                    prevSlide();
+                }
+            }
+        }
+
+        // Dispara uma notificação visual Toast temporária
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            const toastMsg = document.getElementById('toast-message');
+            
+            toastMsg.textContent = message;
+            toast.className = "fixed bottom-6 left-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-gray-800 text-xs font-mono translate-y-0 opacity-100 transition-all duration-300 pointer-events-auto flex items-center space-x-3";
+            
+            setTimeout(() => {
+                toast.className = "fixed bottom-6 left-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-gray-800 text-xs font-mono translate-y-24 opacity-0 transition-all duration-300 pointer-events-none flex items-center space-x-3";
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
